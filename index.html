@@ -1,0 +1,1380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Crux — Legal Argument Intelligence</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@300;400;500&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:        #F0EBE1;
+  --bg2:       #E8E2D8;
+  --bg3:       #DDD7CC;
+  --panel:     #FAF8F4;
+  --navy:      #1C2B3A;
+  --navy2:     #253545;
+  --gold:      #8A6D2E;
+  --gold2:     #AA8B3C;
+  --support:   #1A5C38;
+  --support2:  #237A4C;
+  --challenge: #7A1F2E;
+  --challenge2:#9E2A3C;
+  --blue:      #234A8C;
+  --blue2:     #2E5FAA;
+  --text:      #1A2530;
+  --text2:     #3A4E5E;
+  --text3:     #7A8E9A;
+  --border:    rgba(28,43,58,0.14);
+  --border2:   rgba(28,43,58,0.08);
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Libre Baskerville', Georgia, serif;
+  background: var(--bg);
+  color: var(--text);
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── HEADER ── */
+#header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 24px;
+  border-bottom: 2px solid var(--gold);
+  background: var(--navy);
+  flex-shrink: 0; z-index: 10;
+}
+.brand { display: flex; align-items: baseline; gap: 12px; }
+.brand-name {
+  font-family: 'Playfair Display', serif;
+  font-size: 26px; font-weight: 700;
+  color: #E8D8A8; letter-spacing: 0.5px;
+}
+.brand-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; color: #6A7E90;
+  letter-spacing: 2px; text-transform: uppercase;
+}
+.demo-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; color: var(--gold2);
+  border: 1px solid var(--gold); padding: 2px 8px;
+  border-radius: 2px; letter-spacing: 2px;
+}
+.header-meta { display: flex; align-items: center; gap: 20px; }
+.stat-pill { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #7A8E9A; letter-spacing: 1px; }
+.stat-pill span { color: #E8D8A8; font-weight: 500; }
+
+/* ── CORE POINT BANNER ── */
+#core-point-banner {
+  background: #FFF9EE;
+  border-bottom: 2px solid var(--gold2);
+  padding: 10px 24px;
+  display: none; align-items: flex-start; gap: 14px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(138,109,46,0.12);
+  animation: slideDown 0.4s ease;
+}
+@keyframes slideDown { from { transform:translateY(-20px); opacity:0; } to { transform:translateY(0); opacity:1; } }
+#core-point-banner.visible { display: flex; }
+.cp-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; letter-spacing: 3px;
+  color: var(--gold2); white-space: nowrap;
+  padding-top: 2px; font-weight: 500;
+}
+.cp-items { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+.cp-item { font-size: 12px; color: var(--navy); line-height: 1.6; }
+.cp-item strong { color: var(--gold); font-style: normal; font-size: 9px; font-family: 'JetBrains Mono', monospace; letter-spacing: 1px; }
+.cp-close { background: none; border: none; color: var(--text3); cursor: pointer; font-size: 14px; padding: 0 4px; }
+
+/* ── ANALYSING BAR ── */
+#analysing-bar {
+  display: none; align-items: center; gap: 8px;
+  padding: 7px 24px;
+  background: #EEF3FA;
+  border-bottom: 1px solid rgba(46,95,170,0.2);
+  flex-shrink: 0;
+}
+#analysing-bar.visible { display: flex; }
+.analysing-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--blue2);
+  animation: blink 1.2s ease-in-out infinite;
+}
+.analysing-dot:nth-child(2) { animation-delay: 0.2s; }
+.analysing-dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes blink { 0%,100%{opacity:0.25} 50%{opacity:1} }
+.analysing-text {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; color: var(--blue2); letter-spacing: 2px;
+}
+
+/* ── MAIN ── */
+#main { flex: 1; display: flex; overflow: hidden; }
+
+/* ── GRAPH ── */
+#graph-area { flex: 1; position: relative; overflow: hidden; background: var(--bg); }
+#graph-canvas { width: 100%; height: 100%; cursor: grab; }
+#graph-canvas:active { cursor: grabbing; }
+
+#empty-state {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  pointer-events: none;
+}
+.empty-glyph {
+  font-family: 'Playfair Display', serif;
+  font-size: 80px; color: rgba(28,43,58,0.06);
+  line-height: 1; margin-bottom: 16px;
+}
+.empty-text {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; color: var(--text3);
+  letter-spacing: 2px; text-transform: uppercase;
+}
+
+#zoom-controls {
+  position: absolute; bottom: 20px; right: 20px;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.zoom-btn {
+  width: 32px; height: 32px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  color: var(--text2); font-size: 16px;
+  cursor: pointer; display: flex;
+  align-items: center; justify-content: center;
+  border-radius: 3px;
+  box-shadow: 0 1px 4px rgba(28,43,58,0.08);
+  transition: border-color 0.2s, color 0.2s;
+  font-family: 'JetBrains Mono', monospace;
+}
+.zoom-btn:hover { border-color: var(--gold2); color: var(--gold2); }
+
+#legend {
+  position: absolute; bottom: 20px; left: 20px;
+  display: flex; gap: 16px; align-items: center;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  padding: 8px 14px; border-radius: 3px;
+  box-shadow: 0 1px 4px rgba(28,43,58,0.08);
+}
+.legend-item {
+  display: flex; align-items: center; gap: 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; color: var(--text3); letter-spacing: 1px;
+}
+.legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+
+/* ── SIDE PANEL ── */
+#side-panel {
+  width: 320px;
+  border-left: 1px solid var(--border);
+  background: var(--panel);
+  display: flex; flex-direction: column;
+  overflow: hidden; flex-shrink: 0;
+  box-shadow: -2px 0 12px rgba(28,43,58,0.06);
+}
+#panel-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  background: var(--bg2);
+}
+.tab-btn {
+  flex: 1; padding: 11px 0;
+  background: none; border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text3);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; letter-spacing: 2px;
+  cursor: pointer; transition: color 0.2s, border-color 0.2s;
+}
+.tab-btn.active { color: var(--navy); border-bottom-color: var(--gold2); }
+.panel-content { flex: 1; overflow-y: auto; overflow-x: hidden; }
+.panel-content::-webkit-scrollbar { width: 3px; }
+.panel-content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+/* ── ADD PANEL ── */
+#add-panel { padding: 16px; }
+.selected-context {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; color: var(--text3);
+  letter-spacing: 1px; margin-bottom: 8px; text-transform: uppercase;
+}
+.selected-preview {
+  font-size: 12px; color: var(--text2);
+  line-height: 1.6; padding: 10px 12px;
+  background: var(--bg2);
+  border-left: 2px solid var(--gold2);
+  margin-bottom: 14px; font-style: italic;
+  border-radius: 0 3px 3px 0;
+}
+.type-toggle { display: flex; gap: 6px; margin-bottom: 14px; }
+.type-btn {
+  flex: 1; padding: 9px 0; border-radius: 3px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; letter-spacing: 2px;
+  cursor: pointer; transition: all 0.2s; border: 1px solid transparent;
+}
+.type-btn.support {
+  background: rgba(26,92,56,0.07); border-color: rgba(26,92,56,0.2); color: var(--support);
+}
+.type-btn.support.active {
+  background: rgba(26,92,56,0.15); border-color: var(--support2); color: var(--support);
+  font-weight: 500;
+}
+.type-btn.challenge {
+  background: rgba(122,31,46,0.07); border-color: rgba(122,31,46,0.2); color: var(--challenge);
+}
+.type-btn.challenge.active {
+  background: rgba(122,31,46,0.15); border-color: var(--challenge2); color: var(--challenge);
+  font-weight: 500;
+}
+
+/* ── VOICE ── */
+.voice-section {
+  margin-bottom: 14px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 3px; padding: 12px;
+}
+.voice-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; color: var(--text3);
+  letter-spacing: 2px; margin-bottom: 10px; text-transform: uppercase;
+}
+.voice-btn-row { display: flex; gap: 10px; align-items: center; margin-bottom: 8px; }
+#voice-btn {
+  width: 40px; height: 40px; border-radius: 50%;
+  border: 2px solid var(--gold2);
+  background: rgba(138,109,46,0.08);
+  color: var(--gold2); font-size: 17px;
+  cursor: pointer; display: flex;
+  align-items: center; justify-content: center;
+  transition: all 0.2s; flex-shrink: 0;
+}
+#voice-btn:hover { background: rgba(138,109,46,0.15); }
+#voice-btn.recording {
+  border-color: var(--challenge2);
+  background: rgba(158,42,60,0.1);
+  color: var(--challenge2);
+  animation: pulse 1.2s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%,100% { box-shadow: 0 0 0 0 rgba(158,42,60,0.3); }
+  50% { box-shadow: 0 0 0 8px rgba(158,42,60,0); }
+}
+.voice-status { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text3); line-height: 1.5; flex: 1; }
+#transcript-preview { font-size: 11px; color: var(--text2); font-style: italic; line-height: 1.6; min-height: 18px; }
+.voice-note { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--text3); letter-spacing: 1px; margin-top: 6px; line-height: 1.5; }
+
+/* ── TEXTAREA ── */
+.arg-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; color: var(--text3);
+  letter-spacing: 2px; margin-bottom: 8px; text-transform: uppercase;
+}
+#arg-textarea {
+  width: 100%;
+  background: #FFF;
+  border: 1px solid var(--border);
+  border-radius: 3px; padding: 12px;
+  color: var(--text);
+  font-family: 'Libre Baskerville', serif;
+  font-size: 12px; line-height: 1.7;
+  resize: none; outline: none;
+  transition: border-color 0.2s; margin-bottom: 6px;
+  box-shadow: inset 0 1px 3px rgba(28,43,58,0.04);
+}
+#arg-textarea:focus { border-color: var(--gold2); }
+.char-count {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; text-align: right; margin-bottom: 12px;
+}
+#submit-btn {
+  width: 100%; padding: 12px 0;
+  background: var(--navy); border: none; border-radius: 3px;
+  color: #E8D8A8;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; font-weight: 500; letter-spacing: 3px;
+  cursor: pointer; transition: background 0.2s, opacity 0.2s;
+  text-transform: uppercase;
+}
+#submit-btn:hover { background: var(--navy2); }
+#submit-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.submit-error {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; color: var(--challenge2); margin-top: 8px; letter-spacing: 1px;
+}
+
+/* ── DUP WARNING ── */
+#dup-warning {
+  display: none;
+  background: #FFF8E8;
+  border: 1px solid rgba(138,109,46,0.3);
+  padding: 12px; margin-top: 10px; border-radius: 3px;
+}
+#dup-warning.visible { display: block; }
+.dup-title { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--gold2); letter-spacing: 2px; margin-bottom: 6px; }
+.dup-text { font-size: 11px; color: var(--text2); line-height: 1.5; font-style: italic; margin-bottom: 10px; }
+.dup-btns { display: flex; gap: 6px; }
+.dup-btn {
+  flex: 1; padding: 7px 0; border-radius: 3px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; letter-spacing: 1px; cursor: pointer; border: 1px solid;
+}
+.dup-btn.add { background: rgba(138,109,46,0.1); border-color: var(--gold2); color: var(--gold2); }
+.dup-btn.cancel { background: none; border-color: var(--text3); color: var(--text3); }
+
+/* ── NO SELECTION ── */
+#no-selection { padding: 40px 16px; text-align: center; }
+.no-sel-glyph { font-family: 'Playfair Display', serif; font-size: 40px; color: rgba(28,43,58,0.1); margin-bottom: 10px; }
+.no-sel-text { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text3); letter-spacing: 1px; line-height: 2; }
+
+/* ── DETAIL PANEL ── */
+#detail-panel { padding: 16px; }
+.detail-type-badge {
+  display: inline-block;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; letter-spacing: 2px;
+  padding: 3px 10px; border-radius: 2px; margin-bottom: 12px;
+}
+.detail-gist {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; color: var(--gold2);
+  letter-spacing: 1px; margin-bottom: 10px;
+  font-weight: 500;
+}
+.detail-text { font-size: 12px; line-height: 1.75; color: var(--text); margin-bottom: 14px; }
+.vote-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.vote-btn {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 3px; padding: 6px 14px;
+  color: var(--text2); cursor: pointer; font-size: 13px;
+  transition: all 0.2s;
+}
+.vote-btn:hover { border-color: var(--gold2); color: var(--gold2); }
+.vote-btn:disabled { opacity: 0.3; cursor: default; }
+.vote-count {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px; font-weight: 500; color: var(--text);
+  min-width: 24px; text-align: center;
+}
+.flag-btn {
+  margin-left: auto; background: none;
+  border: 1px solid rgba(122,31,46,0.2);
+  border-radius: 3px; padding: 5px 10px;
+  color: var(--text3); cursor: pointer;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; letter-spacing: 1px; transition: all 0.2s;
+}
+.flag-btn:hover { border-color: var(--challenge2); color: var(--challenge2); }
+.meta-section {
+  border-top: 1px solid var(--border2);
+  padding-top: 12px; display: flex;
+  flex-direction: column; gap: 8px; margin-bottom: 12px;
+}
+.meta-row { display: flex; justify-content: space-between; align-items: center; }
+.meta-label { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--text3); letter-spacing: 2px; }
+.meta-value { font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 500; }
+.quality-box {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 3px; padding: 12px; margin-bottom: 12px;
+}
+.quality-title { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--text3); letter-spacing: 2px; margin-bottom: 10px; }
+.quality-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.quality-label { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--text3); letter-spacing: 1px; }
+.quality-bar-wrap { flex: 1; margin: 0 10px; height: 3px; background: rgba(28,43,58,0.1); border-radius: 2px; }
+.quality-bar { height: 100%; border-radius: 2px; transition: width 0.5s ease; }
+.quality-val { font-family: 'JetBrains Mono', monospace; font-size: 9px; }
+.fallacy-box {
+  background: #FFF2F4; border: 1px solid rgba(122,31,46,0.2);
+  border-radius: 3px; padding: 10px 12px; margin-bottom: 12px;
+}
+.fallacy-title { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--challenge2); letter-spacing: 1px; margin-bottom: 4px; }
+.fallacy-text { font-size: 11px; color: #8A4050; line-height: 1.6; }
+.tags-wrap { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 12px; }
+.tag {
+  font-family: 'JetBrains Mono', monospace; font-size: 9px;
+  padding: 2px 8px; border-radius: 2px;
+  background: rgba(35,74,140,0.08); border: 1px solid rgba(35,74,140,0.2);
+  color: var(--blue2); letter-spacing: 1px;
+}
+.ai-note {
+  font-size: 11px; color: var(--text3); line-height: 1.7;
+  font-style: italic; padding-top: 8px; border-top: 1px solid var(--border2);
+}
+.ai-note::before { content: '◈ '; color: var(--gold2); font-style: normal; }
+.respond-btn {
+  width: 100%; margin-top: 14px; padding: 10px 0;
+  background: none; border: 1px solid var(--border);
+  border-radius: 3px; color: var(--text3);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; letter-spacing: 2px;
+  cursor: pointer; transition: all 0.2s; text-transform: uppercase;
+}
+.respond-btn:hover { border-color: var(--gold2); color: var(--gold2); }
+
+/* ── CLUSTER PANEL ── */
+#cluster-panel { padding: 16px; }
+.cluster-card {
+  margin-bottom: 10px; background: var(--bg2);
+  border: 1px solid var(--border); border-radius: 3px;
+  padding: 12px; cursor: pointer; transition: border-color 0.2s;
+}
+.cluster-card:hover { border-color: var(--blue2); }
+.cluster-name { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--blue2); letter-spacing: 2px; margin-bottom: 4px; }
+.cluster-count { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--text3); }
+.cluster-synthesis { font-size: 11px; color: var(--text2); line-height: 1.6; font-style: italic; margin-top: 6px; }
+.no-clusters { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text3); letter-spacing: 1px; padding: 20px 0; text-align: center; line-height: 2; }
+
+/* ── SETUP MODAL ── */
+#setup-modal {
+  position: fixed; inset: 0;
+  background: rgba(20,30,42,0.7);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 100; backdrop-filter: blur(6px);
+}
+.setup-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-top: 3px solid var(--gold2);
+  border-radius: 4px; padding: 48px 52px;
+  max-width: 520px; width: 90%;
+  box-shadow: 0 24px 64px rgba(20,30,42,0.25);
+}
+.setup-eyebrow { font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 4px; color: var(--gold2); margin-bottom: 10px; text-transform: uppercase; }
+.setup-title { font-family: 'Playfair Display', serif; font-size: 40px; color: var(--navy); margin-bottom: 6px; font-weight: 700; }
+.setup-subtitle { font-size: 13px; color: var(--text2); line-height: 1.7; margin-bottom: 32px; }
+.setup-field-label { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--gold2); letter-spacing: 2px; margin-bottom: 8px; text-transform: uppercase; }
+.setup-input {
+  width: 100%; background: #FFF;
+  border: 1px solid var(--border); border-radius: 3px;
+  padding: 12px 14px; color: var(--text);
+  font-family: 'Libre Baskerville', serif; font-size: 13px;
+  outline: none; margin-bottom: 20px; transition: border-color 0.2s;
+  box-shadow: inset 0 1px 3px rgba(28,43,58,0.04);
+}
+.setup-input:focus { border-color: var(--gold2); }
+.setup-textarea {
+  width: 100%; background: #FFF;
+  border: 1px solid rgba(138,109,46,0.4); border-radius: 3px;
+  padding: 12px 14px; color: var(--text);
+  font-family: 'Libre Baskerville', serif; font-size: 13px;
+  outline: none; resize: none; line-height: 1.7; margin-bottom: 6px;
+  transition: border-color 0.2s;
+  box-shadow: inset 0 1px 3px rgba(28,43,58,0.04);
+}
+.setup-textarea:focus { border-color: var(--gold2); }
+.setup-char { font-family: 'JetBrains Mono', monospace; font-size: 9px; text-align: right; margin-bottom: 20px; color: var(--text3); }
+.setup-btn {
+  width: 100%; padding: 14px 0;
+  background: var(--navy); border: none; border-radius: 3px;
+  color: #E8D8A8;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; font-weight: 500; letter-spacing: 3px;
+  cursor: pointer; transition: background 0.2s, opacity 0.2s; text-transform: uppercase;
+}
+.setup-btn:hover { background: var(--navy2); }
+.setup-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.demo-note { margin-top: 20px; font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--text3); letter-spacing: 1px; line-height: 1.8; text-align: center; }
+</style>
+</head>
+<body>
+
+<!-- SETUP MODAL -->
+<div id="setup-modal">
+  <div class="setup-card">
+    <div class="setup-eyebrow">Legal Argument Intelligence</div>
+    <div class="setup-title">Crux</div>
+    <div class="setup-subtitle">Set the matter position. Everything builds from this.</div>
+    <div class="setup-field-label">Your Name</div>
+    <input class="setup-input" id="setup-name" placeholder="e.g. Sarah Menon, Partner" maxlength="60"/>
+    <div class="setup-field-label">Root Position — The Legal Claim Under Examination</div>
+    <textarea class="setup-textarea" id="setup-premise" rows="4"
+      placeholder="e.g. Our client has a viable force majeure defence — the AWS outage of 14–16 March 2024 falls within Schedule 3 and directly caused the delivery failure…"></textarea>
+    <div class="setup-char" id="setup-char">0 / 50 min</div>
+    <button class="setup-btn" id="setup-btn" disabled onclick="launchSession()">OPEN SESSION →</button>
+    <div class="demo-note">
+      Demo mode · AI analysis via Anthropic API · Production runs on-device on Apple Silicon<br>
+      API key: <span id="key-status" style="color:var(--challenge2)">not configured — see source</span>
+    </div>
+  </div>
+</div>
+
+<!-- HEADER -->
+<div id="header">
+  <div class="brand">
+    <div class="brand-name">Crux</div>
+    <div class="brand-tag">Legal Argument Intelligence</div>
+    <div class="demo-badge">DEMO</div>
+  </div>
+  <div class="header-meta">
+    <div class="stat-pill">Nodes: <span id="stat-nodes">0</span></div>
+    <div class="stat-pill">Clusters: <span id="stat-clusters">0</span></div>
+    <div class="stat-pill" id="stat-user" style="color:#E8D8A8;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:1px;"></div>
+  </div>
+</div>
+
+<!-- CORE POINT BANNER -->
+<div id="core-point-banner">
+  <div class="cp-label">◆ CORE POINT</div>
+  <div class="cp-items" id="cp-items"></div>
+  <button class="cp-close" onclick="document.getElementById('core-point-banner').classList.remove('visible')">✕</button>
+</div>
+
+<!-- ANALYSING BAR -->
+<div id="analysing-bar">
+  <div class="analysing-dot"></div>
+  <div class="analysing-dot"></div>
+  <div class="analysing-dot"></div>
+  <div class="analysing-text" id="analysing-text">AI ANALYSING ARGUMENT</div>
+</div>
+
+<!-- MAIN -->
+<div id="main">
+  <div id="graph-area">
+    <svg id="graph-canvas"></svg>
+    <div id="empty-state">
+      <div class="empty-glyph">§</div>
+      <div class="empty-text">Select a node · Add your argument</div>
+    </div>
+    <div id="zoom-controls">
+      <button class="zoom-btn" onclick="zoomIn()">+</button>
+      <button class="zoom-btn" onclick="zoomOut()">−</button>
+      <button class="zoom-btn" onclick="resetView()" style="font-size:12px;">⌂</button>
+    </div>
+    <div id="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#8A6D2E"></div>Premise</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#1A5C38"></div>Support</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#7A1F2E"></div>Challenge</div>
+      <div class="legend-item" style="margin-left:8px;color:var(--text3);font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1px;">scroll · drag</div>
+    </div>
+  </div>
+
+  <div id="side-panel">
+    <div id="panel-tabs">
+      <button class="tab-btn active" onclick="switchTab('add')">ADD</button>
+      <button class="tab-btn" onclick="switchTab('detail')">DETAIL</button>
+      <button class="tab-btn" onclick="switchTab('clusters')">CLUSTERS</button>
+    </div>
+
+    <!-- ADD TAB -->
+    <div class="panel-content" id="tab-add">
+      <div id="add-panel">
+        <div id="no-selection">
+          <div class="no-sel-glyph">§</div>
+          <div class="no-sel-text">Click the premise or<br>any node to respond</div>
+        </div>
+        <div id="with-selection" style="display:none">
+          <div class="selected-context">Responding to</div>
+          <div class="selected-preview" id="selected-preview"></div>
+          <div class="type-toggle">
+            <button class="type-btn support active" id="btn-support" onclick="setType('support')">✓ SUPPORT</button>
+            <button class="type-btn challenge" id="btn-challenge" onclick="setType('challenge')">✗ CHALLENGE</button>
+          </div>
+          <div class="voice-section">
+            <div class="voice-label">Voice Input</div>
+            <div class="voice-btn-row">
+              <button id="voice-btn" onclick="toggleVoice()" title="Tap to speak">🎙</button>
+              <div class="voice-status" id="voice-status">Tap to speak your argument</div>
+            </div>
+            <div id="transcript-preview"></div>
+            <div class="voice-note" id="voice-note"></div>
+          </div>
+          <div class="arg-label">Or Type Your Argument</div>
+          <textarea id="arg-textarea" rows="5"
+            placeholder="State your argument… (50–500 characters)"
+            oninput="onArgInput()"></textarea>
+          <div class="char-count" id="char-count" style="color:var(--text3)">0 / 500</div>
+          <button id="submit-btn" disabled onclick="submitArgument(false)">SUBMIT →</button>
+          <div class="submit-error" id="submit-error"></div>
+          <div id="dup-warning">
+            <div class="dup-title">⚠ SIMILAR ARGUMENT EXISTS</div>
+            <div class="dup-text" id="dup-text"></div>
+            <div class="dup-btns">
+              <button class="dup-btn add" onclick="submitArgument(true)">ADD ANYWAY</button>
+              <button class="dup-btn cancel" onclick="closeDupWarning()">CANCEL</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DETAIL TAB -->
+    <div class="panel-content" id="tab-detail" style="display:none">
+      <div id="detail-panel">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text3);letter-spacing:1px;padding:20px 0;text-align:center;">No node selected</div>
+      </div>
+    </div>
+
+    <!-- CLUSTERS TAB -->
+    <div class="panel-content" id="tab-clusters" style="display:none">
+      <div id="cluster-panel">
+        <div class="no-clusters">Clusters form when<br>3+ related arguments<br>accumulate</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  ▶▶  REPLACE WITH YOUR ANTHROPIC API KEY  ◀◀
+const API_KEY = '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';
+// ═══════════════════════════════════════════════════════
+
+// ── State ──────────────────────────────────────────────
+let nodes = [], edges = [], clusters = {};
+let selectedId = null, argType = 'support', userName = '';
+let votes = {}, flags = {};
+let analysing = false, corePoints = [];
+let zoom = 1, panX = 0, panY = 0;
+let dragging = false, dragStartX, dragStartY, panStartX, panStartY;
+let voiceActive = false, recognition = null, currentTranscript = '';
+let activeTab = 'add';
+
+const W = () => document.getElementById('graph-area').clientWidth;
+const H = () => document.getElementById('graph-area').clientHeight;
+
+// ── API key check ──────────────────────────────────────
+if (API_KEY.startsWith('sk-ant')) {
+  document.getElementById('key-status').textContent = 'configured ✓';
+  document.getElementById('key-status').style.color = '#237A4C';
+}
+
+// ── Setup ──────────────────────────────────────────────
+document.getElementById('setup-name').addEventListener('input', checkSetup);
+document.getElementById('setup-premise').addEventListener('input', function() {
+  const len = this.value.trim().length;
+  document.getElementById('setup-char').textContent = `${len} / 50 min`;
+  document.getElementById('setup-char').style.color = len >= 50 ? '#237A4C' : 'var(--text3)';
+  checkSetup();
+});
+function checkSetup() {
+  const name = document.getElementById('setup-name').value.trim();
+  const premise = document.getElementById('setup-premise').value.trim();
+  document.getElementById('setup-btn').disabled = !name || premise.length < 50;
+}
+function launchSession() {
+  userName = document.getElementById('setup-name').value.trim();
+  const premiseText = document.getElementById('setup-premise').value.trim();
+  document.getElementById('setup-modal').style.display = 'none';
+  document.getElementById('stat-user').textContent = '👤 ' + userName;
+  const id = uid();
+  nodes.push({
+    id, text: premiseText, type: 'premise',
+    author: userName, ts: Date.now(), parentId: null,
+    gist: 'Root position',
+    tags: [], strength: 'strong', fallacy: null,
+    cluster: 'Premise', quality: { evidence: 100, logic: 100, relevance: 100 },
+    aiNote: 'Root position — all arguments build from this claim.',
+    votes: 0, flags: [], pending: false,
+  });
+  selectedId = id;
+  updateStats(); renderGraph(); showNodeInPanel(id);
+  document.getElementById('empty-state').style.display = 'none';
+}
+
+// ── Voice ──────────────────────────────────────────────
+function buildRecognition() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) return null;
+  const r = new SR();
+  r.continuous = false; // Use non-continuous — more reliable across sessions
+  r.interimResults = true;
+  r.lang = 'en-US'; // en-US has broader vocab coverage than en-GB for tech terms
+  r.onresult = (e) => {
+    let interim = '', final = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) final += e.results[i][0].transcript;
+      else interim += e.results[i][0].transcript;
+    }
+    currentTranscript += final;
+    document.getElementById('transcript-preview').textContent = (currentTranscript + interim).trim();
+  };
+  r.onerror = (e) => {
+    if (e.error === 'no-speech') {
+      // Auto-restart on silence
+      if (voiceActive) { try { recognition.start(); } catch(_) {} }
+      return;
+    }
+    document.getElementById('voice-status').textContent = 'Error: ' + e.error + ' — tap to retry';
+    stopVoice();
+  };
+  r.onend = () => {
+    if (voiceActive) {
+      // Always restart if still in recording mode
+      try { recognition = buildRecognition(); recognition.start(); } catch(_) {}
+    }
+  };
+  return r;
+}
+function initVoice() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    document.getElementById('voice-note').textContent = 'Voice requires Chrome or Edge on localhost.';
+    document.getElementById('voice-btn').disabled = true;
+    document.getElementById('voice-btn').style.opacity = '0.3';
+    return false;
+  }
+  return true;
+}
+function toggleVoice() { voiceActive ? stopAndProcess() : startVoice(); }
+function startVoice() {
+  if (!initVoice()) return;
+  // Always create a fresh recognition object for each session
+  recognition = buildRecognition();
+  if (!recognition) return;
+  currentTranscript = '';
+  document.getElementById('transcript-preview').textContent = '';
+  document.getElementById('arg-textarea').value = ''; onArgInput();
+  voiceActive = true;
+  try { recognition.start(); } catch(e) { console.error('Voice start error:', e); return; }
+  document.getElementById('voice-btn').classList.add('recording');
+  document.getElementById('voice-btn').textContent = '⏹';
+  document.getElementById('voice-status').textContent = 'Recording… tap to stop';
+  document.getElementById('voice-note').textContent = '';
+}
+function stopVoice() {
+  voiceActive = false;
+  if (recognition) { try { recognition.stop(); } catch(e) {} recognition = null; }
+  document.getElementById('voice-btn').classList.remove('recording');
+  document.getElementById('voice-btn').textContent = '🎙';
+  document.getElementById('voice-status').textContent = 'Tap to speak your argument';
+}
+async function stopAndProcess() {
+  stopVoice();
+  const raw = currentTranscript.trim();
+  if (!raw) { document.getElementById('voice-note').textContent = 'Nothing captured — try again'; return; }
+  document.getElementById('voice-status').textContent = 'Extracting argument…';
+  const extracted = await extractArgument(raw);
+  document.getElementById('arg-textarea').value = extracted;
+  document.getElementById('voice-status').textContent = 'Review and confirm below';
+  document.getElementById('voice-note').textContent = 'Edit if needed, then tap Submit.';
+  onArgInput();
+}
+async function extractArgument(transcript) {
+  if (!API_KEY.startsWith('sk-ant')) return transcript.slice(0, 500);
+  const selectedNode = nodes.find(n => n.id === selectedId);
+  const prompt = `Extract the core legal argument from this spoken input for a ${argType} to: "${selectedNode?.text || ''}"
+Spoken: "${transcript}"
+Remove preamble, filler, trailing qualifications. Keep the substantive legal point, any cited authorities or clauses.
+Return ONLY the extracted argument — 50 to 500 characters, no quotes.`;
+  try {
+    const res = await callClaude(prompt, 200);
+    return res.trim().replace(/^["']|["']$/g, '').slice(0, 500) || transcript.slice(0, 500);
+  } catch(e) { return transcript.slice(0, 500); }
+}
+
+// ── Argument submission ────────────────────────────────
+function onArgInput() {
+  const text = document.getElementById('arg-textarea').value;
+  const len = text.length;
+  const cc = document.getElementById('char-count');
+  cc.textContent = `${len} / 500`;
+  cc.style.color = len < 50 ? 'var(--challenge2)' : len > 500 ? 'var(--challenge2)' : 'var(--support)';
+  document.getElementById('submit-btn').disabled = len < 50 || len > 500 || analysing;
+  document.getElementById('submit-error').textContent = '';
+  closeDupWarning();
+}
+function setType(t) {
+  argType = t;
+  document.getElementById('btn-support').classList.toggle('active', t === 'support');
+  document.getElementById('btn-challenge').classList.toggle('active', t === 'challenge');
+}
+async function submitArgument(force = false) {
+  const text = document.getElementById('arg-textarea').value.trim();
+  if (text.length < 50) { document.getElementById('submit-error').textContent = 'Minimum 50 characters.'; return; }
+  if (text.length > 500) { document.getElementById('submit-error').textContent = 'Maximum 500 characters.'; return; }
+  if (!selectedId) return;
+  closeDupWarning();
+  document.getElementById('submit-error').textContent = '';
+  if (!force) {
+    const others = nodes.filter(n => n.type !== 'premise');
+    if (others.length >= 2) {
+      setAnalysing(true, 'CHECKING FOR DUPLICATES');
+      const dup = await checkDuplicate(text, others);
+      setAnalysing(false);
+      if (dup.similar) { showDupWarning(dup.matchText); return; }
+    }
+  }
+  const id = uid();
+  const parentNode = nodes.find(n => n.id === selectedId);
+  nodes.push({
+    id, text, type: argType,
+    author: userName, ts: Date.now(), parentId: selectedId,
+    gist: 'Analysing…',
+    tags: [], strength: 'moderate', fallacy: null,
+    cluster: 'Analysing…', quality: { evidence: 50, logic: 50, relevance: 50 },
+    aiNote: '', votes: 0, flags: [], pending: true,
+  });
+  edges.push({ source: selectedId, target: id });
+  document.getElementById('arg-textarea').value = '';
+  document.getElementById('transcript-preview').textContent = '';
+  currentTranscript = ''; onArgInput();
+  selectedId = id;
+  updateStats(); renderGraph(); showNodeInPanel(id);
+  setAnalysing(true, 'AI ANALYSING ARGUMENT');
+  try {
+    const analysis = await analyseNode(text, argType, parentNode);
+    const idx = nodes.findIndex(n => n.id === id);
+    if (idx >= 0) {
+      nodes[idx] = { ...nodes[idx], ...analysis, pending: false };
+      const ck = analysis.cluster || 'General';
+      if (!clusters[ck]) clusters[ck] = { nodeIds: [], synthesis: '' };
+      if (!clusters[ck].nodeIds.includes(id)) clusters[ck].nodeIds.push(id);
+      if (clusters[ck].nodeIds.length >= 3 && clusters[ck].nodeIds.length % 3 === 0) {
+        const clusterNodes = nodes.filter(n => clusters[ck].nodeIds.includes(n.id));
+        clusters[ck].synthesis = await synthesiseCluster(ck, clusterNodes);
+      }
+    }
+    updateStats(); renderGraph();
+    if (selectedId === id) showNodeInPanel(id);
+    renderClusters();
+    const nonPremise = nodes.filter(n => n.type !== 'premise' && !n.pending);
+    if (nonPremise.length > 0 && nonPremise.length % 10 === 0) {
+      setAnalysing(true, 'RUNNING CORE POINT DETECTION');
+      corePoints = await detectCorePoints(nodes);
+      showCorePoints();
+    }
+  } catch(e) {
+    console.error('Analysis error:', e.message || e);
+    const idx = nodes.findIndex(n => n.id === id);
+    if (idx >= 0) {
+      const mock = mockAnalysis(nodes[idx].text, nodes[idx].type);
+      nodes[idx] = { ...nodes[idx], ...mock, pending: false };
+      const ck = mock.cluster || 'General';
+      if (!clusters[ck]) clusters[ck] = { nodeIds: [], synthesis: '' };
+      if (!clusters[ck].nodeIds.includes(id)) clusters[ck].nodeIds.push(id);
+    }
+    updateStats(); renderGraph();
+    if (selectedId === id) showNodeInPanel(id);
+    renderClusters();
+  }
+  setAnalysing(false);
+}
+
+// ── Claude API ──────────────────────────────────────────
+async function callClaude(prompt, maxTokens = 500) {
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': API_KEY,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true',
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: maxTokens,
+      messages: [{ role: 'user', content: prompt }],
+    }),
+  });
+  if (!res.ok) throw new Error('API error ' + res.status);
+  const data = await res.json();
+  return data.content?.[0]?.text || '';
+}
+function parseJSON(raw) {
+  try { return JSON.parse(raw.replace(/```json|```/g,'').trim()); } catch(e) { return null; }
+}
+
+async function analyseNode(text, type, parentNode) {
+  if (!API_KEY.startsWith('sk-ant')) return mockAnalysis(text, type);
+  const context = nodes.slice(-12).map(n => `[${n.type}] ${n.text}`).join('\n');
+  const prompt = `You are Crux, an AI argument analyst for legal teams. Analyse this ${type} argument.
+
+Parent position: "${parentNode?.text || 'Root'}"
+New argument: "${text}"
+Recent context:
+${context}
+
+Respond ONLY with JSON (no markdown, no explanation):
+{
+  "gist": "3-5 word phrase capturing the core point e.g. 'Notice timing defective', 'Outage breaks causal chain', 'Schedule 3 covers this'",
+  "tags": ["up to 3: factual,legal,procedural,evidential,policy,precedent,contractual"],
+  "strength": "weak|moderate|strong",
+  "fallacy": null or "specific fallacy name",
+  "fallacyExplanation": null or "one sentence",
+  "cluster": "2-4 word legal category e.g. 'Force Majeure Evidence', 'Notice Requirements', 'Causation Analysis'",
+  "quality": { "evidence": 0-100, "logic": 0-100, "relevance": 0-100 },
+  "aiNote": "one sentence insight about this argument's role in the legal strategy"
+}`;
+  const raw = await callClaude(prompt, 450);
+  return parseJSON(raw) || mockAnalysis(text, type);
+}
+
+async function checkDuplicate(text, existing) {
+  if (!API_KEY.startsWith('sk-ant')) return { similar: false };
+  const candidates = existing.slice(-20).map(n => `[${n.id}] ${n.text}`).join('\n');
+  const prompt = `Compare this new legal argument to existing ones. Find the closest match.
+New: "${text}"
+Existing:
+${candidates}
+Respond ONLY with JSON: {"score": 0.0-1.0, "matchId": "id or null"}
+Score >0.85 = near-duplicate.`;
+  try {
+    const raw = await callClaude(prompt, 120);
+    const r = parseJSON(raw) || { score: 0 };
+    if (r.score > 0.85) {
+      const match = existing.find(n => n.id === r.matchId);
+      return { similar: true, matchText: match?.text || '' };
+    }
+  } catch(e) {}
+  return { similar: false };
+}
+
+async function synthesiseCluster(name, clusterNodes) {
+  if (!API_KEY.startsWith('sk-ant')) return `${name} — ${clusterNodes.length} related arguments`;
+  const texts = clusterNodes.map(n => `• [${n.type}] ${n.text}`).join('\n');
+  const prompt = `Synthesise these related legal arguments into one precise sentence (max 25 words):
+${texts}
+Respond with ONLY the synthesis.`;
+  try { return (await callClaude(prompt, 80)).trim(); } catch(e) { return name; }
+}
+
+async function detectCorePoints(allNodes) {
+  if (!API_KEY.startsWith('sk-ant')) return [{ title: 'Key Legal Issue', description: 'The fundamental point requiring resolution before a position can be settled.' }];
+  const summary = allNodes.map(n => `[${n.type}][${n.cluster}] ${n.text}`).join('\n');
+  const prompt = `You are Crux analysing a legal team's argument session. Identify the 1-3 fundamental unresolved points — the things that cannot be settled until explicitly named.
+
+Full session:
+${summary}
+
+Respond ONLY with JSON:
+{"points": [{"title": "5 words max", "description": "1-2 sentences — what is unresolved and why it matters"}]}`;
+  try {
+    const raw = await callClaude(prompt, 400);
+    return parseJSON(raw)?.points || [];
+  } catch(e) { return []; }
+}
+
+function mockAnalysis(text, type) {
+  return {
+    gist: type === 'support' ? 'Supports position' : 'Challenges position',
+    tags: ['legal', 'contractual'],
+    strength: text.length > 200 ? 'strong' : 'moderate',
+    fallacy: null, fallacyExplanation: null,
+    cluster: type === 'support' ? 'Supporting Arguments' : 'Counter Arguments',
+    quality: { evidence: 60, logic: 70, relevance: 80 },
+    aiNote: 'Configure your API key for AI-powered analysis.',
+  };
+}
+
+// ── Graph rendering ─────────────────────────────────────
+function computePositions() {
+  const positions = {};
+  if (!nodes.length) return positions;
+  const cw = W(), ch = H(), cx = cw / 2, cy = ch / 2;
+  const childMap = {};
+  nodes.forEach(n => { childMap[n.id] = []; });
+  nodes.forEach(n => { if (n.parentId && childMap[n.parentId]) childMap[n.parentId].push(n.id); });
+  const root = nodes.find(n => !n.parentId);
+  if (!root) return positions;
+  positions[root.id] = { x: cx, y: cy };
+  function place(nodeId, depth, baseAngle) {
+    const children = childMap[nodeId] || [];
+    if (!children.length) return;
+    const r = 110 + depth * 125;
+    const supports = children.filter(id => nodes.find(x=>x.id===id)?.type==='support');
+    const challenges = children.filter(id => nodes.find(x=>x.id===id)?.type==='challenge');
+    const all = [...supports, ...challenges];
+    const spread = Math.min(Math.PI * 0.75, (Math.PI * 1.3) / Math.max(all.length, 1));
+    all.forEach((childId, i) => {
+      const n = nodes.find(x => x.id === childId);
+      const skew = n?.type === 'support' ? -Math.PI * 0.5 : Math.PI * 0.5;
+      const offset = (i - (all.length - 1) / 2) * spread;
+      const angle = baseAngle + skew + offset;
+      const jitter = (Math.random() - 0.5) * 12;
+      positions[childId] = {
+        x: Math.max(70, Math.min(cw-70, cx + Math.cos(angle)*r + jitter)),
+        y: Math.max(70, Math.min(ch-70, cy + Math.sin(angle)*r + jitter)),
+      };
+      place(childId, depth + 1, angle);
+    });
+  }
+  place(root.id, 1, 0);
+  // Collision relaxation
+  const ids = Object.keys(positions);
+  for (let pass = 0; pass < 35; pass++) {
+    for (let i = 0; i < ids.length; i++) {
+      for (let j = i+1; j < ids.length; j++) {
+        const a = positions[ids[i]], b = positions[ids[j]];
+        const dx = a.x-b.x, dy = a.y-b.y;
+        const dist = Math.sqrt(dx*dx+dy*dy)||1;
+        if (dist < 80) {
+          const push = (80-dist)/2;
+          a.x += (dx/dist)*push; a.y += (dy/dist)*push;
+          b.x -= (dx/dist)*push; b.y -= (dy/dist)*push;
+        }
+      }
+    }
+  }
+  Object.values(positions).forEach(p => {
+    p.x = Math.max(70, Math.min(W()-70, p.x));
+    p.y = Math.max(70, Math.min(H()-70, p.y));
+  });
+  return positions;
+}
+
+function renderGraph() {
+  const svg = document.getElementById('graph-canvas');
+  const positions = computePositions();
+  const cw = W(), ch = H();
+
+  const defs = `<defs>
+    <filter id="fg" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="3" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="fs" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="3" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="fc" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="3" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="fsel" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="7" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="drop" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="1" stdDeviation="2" flood-color="rgba(28,43,58,0.18)"/>
+    </filter>
+  </defs>`;
+
+  // Cluster halos
+  let halos = '';
+  Object.entries(clusters).forEach(([name, cluster]) => {
+    if (cluster.nodeIds.length < 3) return;
+    const pts = cluster.nodeIds.map(id => positions[id]).filter(Boolean);
+    if (pts.length < 3) return;
+    const cx2 = pts.reduce((s,p)=>s+p.x,0)/pts.length;
+    const cy2 = pts.reduce((s,p)=>s+p.y,0)/pts.length;
+    const maxDist = Math.max(...pts.map(p=>Math.sqrt((p.x-cx2)**2+(p.y-cy2)**2)));
+    const r = Math.max(50, maxDist + 36);
+    halos += `<ellipse cx="${cx2}" cy="${cy2}" rx="${r}" ry="${r*0.7}"
+      fill="rgba(35,74,140,0.04)" stroke="rgba(35,74,140,0.15)"
+      stroke-width="1" stroke-dasharray="6 5"/>
+    <text x="${cx2}" y="${cy2-r*0.7-8}" text-anchor="middle"
+      font-family="JetBrains Mono,monospace" font-size="8"
+      fill="rgba(46,95,170,0.6)" letter-spacing="2">${name.toUpperCase()}</text>`;
+  });
+
+  // Axis guide
+  const axis = `
+    <line x1="${cw/2}" y1="15" x2="${cw/2}" y2="${ch-15}"
+      stroke="rgba(28,43,58,0.06)" stroke-width="1" stroke-dasharray="4 10"/>
+    <text x="${cw/2-18}" y="14" font-family="JetBrains Mono,monospace" font-size="8"
+      fill="rgba(26,92,56,0.4)" letter-spacing="1">SUPPORT ←</text>
+    <text x="${cw/2+6}" y="14" font-family="JetBrains Mono,monospace" font-size="8"
+      fill="rgba(122,31,46,0.4)" letter-spacing="1">→ CHALLENGE</text>`;
+
+  // Edges
+  let edgesSVG = '';
+  edges.forEach(e => {
+    const sp = positions[e.source], tp = positions[e.target];
+    if (!sp || !tp) return;
+    const tn = nodes.find(n => n.id === e.target);
+    const col = tn?.type === 'support' ? 'rgba(26,92,56,0.3)' : 'rgba(122,31,46,0.3)';
+    const mx = (sp.x+tp.x)/2, my = (sp.y+tp.y)/2 - 22;
+    edgesSVG += `<path d="M${sp.x},${sp.y} Q${mx},${my} ${tp.x},${tp.y}"
+      stroke="${col}" stroke-width="1.5" fill="none"
+      opacity="${tn?.quarantined?0.15:1}"/>`;
+  });
+
+  // Nodes — with gist label pill beneath
+  let nodesSVG = '';
+  nodes.forEach(n => {
+    const pos = positions[n.id];
+    if (!pos) return;
+    const isSel = n.id === selectedId;
+    const isPending = n.pending;
+    const isQ = n.quarantined;
+    const op = isQ ? 0.25 : 1;
+
+    let fill, stroke, textCol, filterID, r;
+    if (n.type === 'premise') {
+      fill='#8A6D2E'; stroke='#B8953F'; textCol='#FFF8EC'; filterID='fg'; r=28;
+    } else if (n.type === 'support') {
+      fill='#1A5C38'; stroke='#2A8A5A'; textCol='#E8F8EE'; filterID='fs';
+      r = 17 + Math.min(Math.max(n.votes||0,0)*1.5, 8);
+    } else {
+      fill='#7A1F2E'; stroke='#A83040'; textCol='#FFE8EA'; filterID='fc';
+      r = 17 + Math.min(Math.max(n.votes||0,0)*1.5, 8);
+    }
+
+    // Gist label dimensions
+    const gistText = n.gist || (isPending ? 'Analysing…' : '');
+    const gistWidth = Math.max(60, gistText.length * 6.2 + 16);
+    const gistX = pos.x - gistWidth/2;
+    const gistY = pos.y + r + 6;
+
+    let extras = '';
+    if (isSel) {
+      extras += `<circle r="${r+13}" fill="${fill}" opacity="0.12"/>
+        <circle r="${r+7}" fill="none" stroke="${stroke}" stroke-width="1.5"
+          stroke-dasharray="4 4" opacity="0.5">
+          <animateTransform attributeName="transform" type="rotate"
+            from="0 0 0" to="360 0 0" dur="10s" repeatCount="indefinite"/>
+        </circle>`;
+    }
+    if (isPending) {
+      extras += `<circle r="${r+5}" fill="none" stroke="#AA8B3C" stroke-width="1.5"
+        stroke-dasharray="3 4" opacity="0.7">
+        <animateTransform attributeName="transform" type="rotate"
+          from="360 0 0" to="0 0 0" dur="1.8s" repeatCount="indefinite"/>
+      </circle>`;
+    }
+    if (n.fallacy) extras += `<text x="${r-1}" y="${-r+2}" font-size="10" fill="#A83040">⚠</text>`;
+    if ((n.votes||0) > 0) extras += `<text text-anchor="middle" y="${-r-9}"
+      font-family="JetBrains Mono,monospace" font-size="9" fill="${stroke}" font-weight="500">+${n.votes}</text>`;
+    if ((n.votes||0) < 0) extras += `<text text-anchor="middle" y="${-r-9}"
+      font-family="JetBrains Mono,monospace" font-size="9" fill="#A83040">${n.votes}</text>`;
+
+    // The gist pill — rendered in absolute coords (outside the translate group)
+    const gistPillOpacity = isPending ? 0.6 : 1;
+    const gistPillFill = isPending ? '#DDD7CC' : n.type === 'support' ? '#EAF4EE' : n.type === 'premise' ? '#FDF7E8' : '#F9ECEE';
+    const gistPillStroke = isPending ? '#BEB8B0' : n.type === 'support' ? 'rgba(26,92,56,0.3)' : n.type === 'premise' ? 'rgba(138,109,46,0.35)' : 'rgba(122,31,46,0.3)';
+    const gistTextColor = isPending ? '#8A8070' : n.type === 'support' ? '#1A5C38' : n.type === 'premise' ? '#8A6D2E' : '#7A1F2E';
+
+    const label = n.type === 'premise' ? 'P' : n.type === 'support' ? 'S' : 'C';
+    const lsize = n.type === 'premise' ? 11 : 9;
+
+    nodesSVG += `
+    <g transform="translate(${pos.x},${pos.y})" style="cursor:pointer;opacity:${op}" data-id="${n.id}" class="node-g">
+      ${extras}
+      <circle r="${r}" fill="${fill}" filter="url(#${isSel?'fsel':filterID})"
+        stroke="${isSel ? stroke : 'rgba(255,255,255,0.5)'}" stroke-width="${isSel?2:1}"/>
+      <text text-anchor="middle" dy="4" font-family="JetBrains Mono,monospace"
+        font-size="${lsize}" fill="${textCol}" font-weight="700"
+        style="pointer-events:none;user-select:none">${label}</text>
+    </g>
+    <g style="pointer-events:none;opacity:${op*gistPillOpacity}">
+      <rect x="${gistX}" y="${gistY}" width="${gistWidth}" height="16" rx="8"
+        fill="${gistPillFill}" stroke="${gistPillStroke}" stroke-width="1"
+        filter="url(#drop)"/>
+      <text x="${pos.x}" y="${gistY+11}" text-anchor="middle"
+        font-family="JetBrains Mono,monospace" font-size="8.5"
+        fill="${gistTextColor}" font-weight="500" letter-spacing="0.3">${gistText}</text>
+    </g>`;
+  });
+
+  svg.innerHTML = `${defs}
+    <g id="graph-root" transform="translate(${panX},${panY}) scale(${zoom})">
+      ${axis}${halos}${edgesSVG}${nodesSVG}
+    </g>`;
+
+  svg.querySelectorAll('.node-g').forEach(g => {
+    g.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const id = g.getAttribute('data-id');
+      selectedId = id; showNodeInPanel(id); renderGraph();
+    });
+  });
+}
+
+// ── Panel ──────────────────────────────────────────────
+function switchTab(tab) {
+  activeTab = tab;
+  ['add','detail','clusters'].forEach((t,i) => {
+    document.getElementById('tab-'+t).style.display = t===tab?'block':'none';
+    document.querySelectorAll('.tab-btn')[i].classList.toggle('active', t===tab);
+  });
+}
+
+function showNodeInPanel(id) {
+  const node = nodes.find(n => n.id === id);
+  if (!node) return;
+  document.getElementById('selected-preview').textContent =
+    node.text.slice(0,100) + (node.text.length>100?'…':'');
+  document.getElementById('no-selection').style.display = 'none';
+  document.getElementById('with-selection').style.display = 'block';
+  renderDetailPanel(node);
+}
+
+function renderDetailPanel(node) {
+  const col = node.type==='premise' ? { fill:'#8A6D2E', text:'#8A6D2E' } :
+              node.type==='support' ? { fill:'#1A5C38', text:'#237A4C' } :
+              { fill:'#7A1F2E', text:'#9E2A3C' };
+  const hasVoted = !!votes[node.id];
+  const hasFlagged = !!flags[node.id];
+  const qc = v => v>=75?'#237A4C':v>=40?'#8A6D2E':'#9E2A3C';
+  const bg = node.type==='premise'?'rgba(138,109,46,0.08)':node.type==='support'?'rgba(26,92,56,0.08)':'rgba(122,31,46,0.08)';
+  const border = node.type==='premise'?'rgba(138,109,46,0.25)':node.type==='support'?'rgba(26,92,56,0.25)':'rgba(122,31,46,0.25)';
+
+  let html = `
+    <div class="detail-type-badge" style="background:${bg};border:1px solid ${border};color:${col.text}">
+      ${node.type.toUpperCase()}${node.pending?' · ANALYSING…':''}
+    </div>
+    ${node.gist && !node.pending ? `<div class="detail-gist">◈ ${node.gist}</div>` : ''}
+    <div class="detail-text">${node.text}</div>
+    <div class="vote-row">
+      <button class="vote-btn" onclick="castVote('${node.id}',1)" ${hasVoted?'disabled':''}>▲</button>
+      <div class="vote-count">${node.votes||0}</div>
+      <button class="vote-btn" onclick="castVote('${node.id}',-1)" ${hasVoted?'disabled':''}>▼</button>
+      <button class="flag-btn" onclick="flagNode('${node.id}')">${hasFlagged?'⚑ FLAGGED':'⚑ FLAG'}</button>
+    </div>
+    <div class="meta-section">
+      <div class="meta-row"><div class="meta-label">AUTHOR</div><div class="meta-value" style="color:var(--text2)">${node.author}</div></div>
+      <div class="meta-row"><div class="meta-label">STRENGTH</div>
+        <div class="meta-value" style="color:${node.strength==='strong'?'#237A4C':node.strength==='weak'?'#9E2A3C':'#8A6D2E'}">
+          ${(node.strength||'—').toUpperCase()}</div></div>
+      <div class="meta-row"><div class="meta-label">CLUSTER</div>
+        <div class="meta-value" style="color:var(--blue2)">${node.cluster||'—'}</div></div>
+    </div>`;
+
+  if (node.quality && !node.pending) {
+    html += `<div class="quality-box"><div class="quality-title">QUALITY SIGNALS</div>`;
+    [['Evidence',node.quality.evidence],['Logic',node.quality.logic],['Relevance',node.quality.relevance]].forEach(([label,val]) => {
+      html += `<div class="quality-row">
+        <div class="quality-label">${label}</div>
+        <div class="quality-bar-wrap"><div class="quality-bar" style="width:${val}%;background:${qc(val)}"></div></div>
+        <div class="quality-val" style="color:${qc(val)}">${val>=75?'HIGH':val>=40?'MOD':'LOW'}</div>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+  if (node.fallacy) {
+    html += `<div class="fallacy-box">
+      <div class="fallacy-title">⚠ ${node.fallacy.toUpperCase()}</div>
+      ${node.fallacyExplanation?`<div class="fallacy-text">${node.fallacyExplanation}</div>`:''}
+    </div>`;
+  }
+  if (node.tags?.length) {
+    html += `<div class="tags-wrap">${node.tags.map(t=>`<span class="tag">${t}</span>`).join('')}</div>`;
+  }
+  if (node.aiNote) html += `<div class="ai-note">${node.aiNote}</div>`;
+
+  const children = nodes.filter(n => n.parentId === node.id);
+  if (children.length) {
+    html += `<div style="margin-top:14px;border-top:1px solid var(--border2);padding-top:12px;">
+      <div class="meta-label" style="margin-bottom:8px">RESPONSES (${children.length})</div>`;
+    children.forEach(c => {
+      const cc = c.type==='support'?'#1A5C38':'#7A1F2E';
+      const cbg = c.type==='support'?'rgba(26,92,56,0.06)':'rgba(122,31,46,0.06)';
+      html += `<div onclick="selectedId='${c.id}';showNodeInPanel('${c.id}');renderGraph()"
+        style="padding:8px 10px;margin-bottom:6px;cursor:pointer;background:${cbg};
+        border-left:2px solid ${cc};border-radius:0 3px 3px 0;font-size:11px;color:var(--text2);line-height:1.5">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:${cc};letter-spacing:1px;display:block;margin-bottom:3px">
+          ${c.type.toUpperCase()} · ${c.author}${c.gist?' · '+c.gist:''}</span>
+        ${c.text.slice(0,65)}${c.text.length>65?'…':''}
+      </div>`;
+    });
+    html += `</div>`;
+  }
+  html += `<button class="respond-btn" onclick="switchTab('add')">RESPOND TO THIS ARGUMENT →</button>`;
+  document.getElementById('detail-panel').innerHTML = html;
+}
+
+function renderClusters() {
+  const panel = document.getElementById('cluster-panel');
+  const entries = Object.entries(clusters).filter(([,c])=>c.nodeIds.length>=2);
+  if (!entries.length) {
+    panel.innerHTML = '<div class="no-clusters">Clusters form when<br>3+ related arguments<br>accumulate</div>';
+    return;
+  }
+  panel.innerHTML = entries.sort((a,b)=>b[1].nodeIds.length-a[1].nodeIds.length).map(([name,cluster])=>`
+    <div class="cluster-card" onclick="selectedId='${cluster.nodeIds[0]}';showNodeInPanel('${cluster.nodeIds[0]}');renderGraph();switchTab('detail')">
+      <div style="display:flex;justify-content:space-between;align-items:baseline">
+        <div class="cluster-name">${name}</div>
+        <div class="cluster-count">${cluster.nodeIds.length} args</div>
+      </div>
+      ${cluster.synthesis?`<div class="cluster-synthesis">${cluster.synthesis}</div>`:''}
+    </div>`).join('');
+  document.getElementById('stat-clusters').textContent = entries.length;
+}
+
+function showCorePoints() {
+  if (!corePoints.length) return;
+  const banner = document.getElementById('core-point-banner');
+  const items = document.getElementById('cp-items');
+  items.innerHTML = corePoints.map((cp,i)=>
+    `<div class="cp-item"><strong>${i+1}. ${cp.title.toUpperCase()} —</strong> ${cp.description}</div>`
+  ).join('');
+  banner.classList.add('visible');
+}
+
+// ── Vote / Flag ─────────────────────────────────────────
+function castVote(nodeId, dir) {
+  if (votes[nodeId]) return;
+  votes[nodeId] = dir;
+  const idx = nodes.findIndex(n=>n.id===nodeId);
+  if (idx>=0) nodes[idx].votes = (nodes[idx].votes||0)+dir;
+  renderGraph(); if (selectedId===nodeId) showNodeInPanel(nodeId);
+}
+function flagNode(nodeId) {
+  if (flags[nodeId]) return;
+  flags[nodeId] = true;
+  const idx = nodes.findIndex(n=>n.id===nodeId);
+  if (idx>=0) {
+    if (!nodes[idx].flags) nodes[idx].flags=[];
+    nodes[idx].flags.push('user');
+    if (nodes[idx].flags.length>=3) nodes[idx].quarantined=true;
+  }
+  renderGraph(); if (selectedId===nodeId) showNodeInPanel(nodeId);
+}
+
+// ── Dup UI ──────────────────────────────────────────────
+function showDupWarning(matchText) {
+  document.getElementById('dup-text').textContent = `"${matchText.slice(0,100)}${matchText.length>100?'…':''}"`;
+  document.getElementById('dup-warning').classList.add('visible');
+}
+function closeDupWarning() { document.getElementById('dup-warning').classList.remove('visible'); }
+
+// ── Analysing state ─────────────────────────────────────
+function setAnalysing(state, msg='AI ANALYSING') {
+  analysing = state;
+  document.getElementById('analysing-bar').classList.toggle('visible', state);
+  if (msg) document.getElementById('analysing-text').textContent = msg;
+  document.getElementById('submit-btn').disabled =
+    state || document.getElementById('arg-textarea').value.length < 50;
+}
+function updateStats() {
+  document.getElementById('stat-nodes').textContent = nodes.length;
+  document.getElementById('stat-clusters').textContent =
+    Object.values(clusters).filter(c=>c.nodeIds.length>=2).length;
+}
+
+// ── Zoom / Pan ──────────────────────────────────────────
+function zoomIn()  { zoom = Math.min(3, zoom*1.2); renderGraph(); }
+function zoomOut() { zoom = Math.max(0.25, zoom*0.8); renderGraph(); }
+function resetView() { zoom=1; panX=0; panY=0; renderGraph(); }
+
+const svg = document.getElementById('graph-canvas');
+svg.addEventListener('mousedown', e => {
+  if (e.target.closest('.node-g')) return;
+  dragging=true; dragStartX=e.clientX; dragStartY=e.clientY; panStartX=panX; panStartY=panY;
+});
+window.addEventListener('mousemove', e => {
+  if (!dragging) return;
+  panX=panStartX+(e.clientX-dragStartX); panY=panStartY+(e.clientY-dragStartY); renderGraph();
+});
+window.addEventListener('mouseup', () => { dragging=false; });
+svg.addEventListener('wheel', e => {
+  e.preventDefault();
+  zoom = Math.max(0.25, Math.min(3, zoom*(e.deltaY<0?1.1:0.9))); renderGraph();
+}, { passive:false });
+
+// ── Resize ──────────────────────────────────────────────
+window.addEventListener('resize', () => { if (nodes.length) renderGraph(); });
+
+// ── Voice availability check ────────────────────────────
+window.addEventListener('load', () => {
+  // Hosted on GitHub Pages — no local file warning needed
+  if (!window.SpeechRecognition && !window.webkitSpeechRecognition) {
+    document.getElementById('voice-btn').disabled=true;
+    document.getElementById('voice-btn').style.opacity='0.3';
+    document.getElementById('voice-status').textContent='Voice requires Chrome/Edge on localhost';
+  }
+});
+
+function uid() { return 'n-'+Date.now()+'-'+Math.random().toString(36).slice(2,8); }
+</script>
+</body>
+</html>
