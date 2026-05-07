@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Crux — Legal Argument Intelligence</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@300;400;500&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:       #F0EBE1; --bg2:#E8E2D8; --bg3:#DDD7CC;
+  --panel:    #FAF8F4; --navy:#1C2B3A; --navy2:#253545;
+  --gold:     #8A6D2E; --gold2:#AA8B3C;
+  --support:  #1A5C38; --support2:#237A4C;
+  --challenge:#7A1F2E; --challenge2:#9E2A3C;
+  --blue:     #234A8C; --blue2:#2E5FAA;
+  --text:     #1A2530; --text2:#3A4E5E; --text3:#7A8E9A;
+  --border:   rgba(28,43,58,0.13); --border2:rgba(28,43,58,0.07);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Libre Baskerville',Georgia,serif;background:var(--bg);color:var(--text);height:100vh;overflow:hidden;display:flex;flex-direction:column;}
+
+/* ── HEADER ── */
+#header{display:flex;align-items:center;justify-content:space-between;padding:12px 24px;border-bottom:2px solid var(--gold2);background:var(--navy);flex-shrink:0;z-index:10;}
+.brand{display:flex;align-items:baseline;gap:12px;}
+.brand-name{font-family:'Playfair Display',serif;font-size:24px;font-weight:700;color:#E8D8A8;letter-spacing:0.5px;}
+.brand-tag{font-family:'JetBrains Mono',monospace;font-size:9px;color:#5A7090;letter-spacing:2px;text-transform:uppercase;}
+.demo-badge{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--gold2);border:1px solid var(--gold);padding:2px 8px;border-radius:2px;letter-spacing:2px;}
+.header-right{display:flex;align-items:center;gap:16px;}
+.stat-pill{font-family:'JetBrains Mono',monospace;font-size:10px;color:#6A7E90;letter-spacing:1px;}
+.stat-pill span{color:#E8D8A8;font-weight:500;}
+#summary-btn{display:none;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;color:#E8D8A8;background:rgba(170,139,60,0.25);border:1px solid var(--gold2);border-radius:2px;padding:5px 12px;cursor:pointer;transition:background 0.2s;}
+#summary-btn:hover{background:rgba(170,139,60,0.4);}
+#summary-btn.visible{display:block;}
+
+/* ── CORE POINT BANNER ── */
+#cp-banner{background:#FFF9EE;border-bottom:2px solid var(--gold2);padding:20px 28px;display:none;flex-direction:column;gap:16px;flex-shrink:0;box-shadow:0 3px 16px rgba(138,109,46,0.15);animation:slideDown 0.5s ease;}
+@keyframes slideDown{from{transform:translateY(-20px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+#cp-banner.visible{display:flex;}
+.cp-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;}
+.cp-label{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:4px;color:var(--gold2);font-weight:700;}
+.cp-close{background:none;border:none;color:var(--text3);cursor:pointer;font-size:16px;padding:0 4px;}
+.cp-points{display:flex;gap:20px;}
+.cp-point{flex:1;padding:14px 16px;background:rgba(255,255,255,0.7);border:1px solid rgba(170,139,60,0.2);border-radius:3px;border-top:2px solid var(--gold2);}
+.cp-point-title{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--gold2);letter-spacing:2px;font-weight:700;margin-bottom:10px;}
+.cp-point-text{font-family:'Playfair Display',serif;font-size:14px;color:var(--navy);line-height:1.8;font-style:italic;}
+
+/* ── ANALYSING BAR ── */
+#analysing-bar{display:none;align-items:center;gap:8px;padding:7px 24px;background:#EEF3FA;border-bottom:1px solid rgba(46,95,170,0.18);flex-shrink:0;}
+#analysing-bar.visible{display:flex;}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--blue2);animation:blink 1.2s ease-in-out infinite;}
+.dot:nth-child(2){animation-delay:0.2s;}.dot:nth-child(3){animation-delay:0.4s;}
+@keyframes blink{0%,100%{opacity:0.25}50%{opacity:1}}
+.analysing-text{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--blue2);letter-spacing:2px;}
+
+/* ── MAIN ── */
+#main{flex:1;display:flex;overflow:hidden;}
+
+/* ── GRAPH ── */
+#graph-area{flex:1;position:relative;overflow:hidden;background:var(--bg);}
+#graph-canvas{width:100%;height:100%;cursor:grab;}
+#graph-canvas:active{cursor:grabbing;}
+#empty-state{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;}
+.empty-glyph{font-family:'Playfair Display',serif;font-size:80px;color:rgba(28,43,58,0.06);margin-bottom:14px;}
+.empty-text{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text3);letter-spacing:2px;text-transform:uppercase;}
+#zoom-controls{position:absolute;bottom:20px;right:20px;display:flex;flex-direction:column;gap:4px;}
+.zoom-btn{width:32px;height:32px;background:var(--panel);border:1px solid var(--border);color:var(--text2);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;border-radius:3px;box-shadow:0 1px 4px rgba(28,43,58,0.08);transition:border-color 0.2s,color 0.2s;font-family:'JetBrains Mono',monospace;}
+.zoom-btn:hover{border-color:var(--gold2);color:var(--gold2);}
+#legend{position:absolute;bottom:20px;left:20px;display:flex;gap:14px;align-items:center;background:var(--panel);border:1px solid var(--border);padding:7px 13px;border-radius:3px;box-shadow:0 1px 4px rgba(28,43,58,0.08);}
+.legend-item{display:flex;align-items:center;gap:5px;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text3);letter-spacing:1px;}
+.legend-dot{width:9px;height:9px;border-radius:50%;}
+
+/* ── SIDE PANEL ── */
+#side-panel{width:320px;border-left:1px solid var(--border);background:var(--panel);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;box-shadow:-2px 0 12px rgba(28,43,58,0.06);}
+#panel-tabs{display:flex;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--bg2);}
+.tab-btn{flex:1;padding:11px 0;background:none;border:none;border-bottom:2px solid transparent;color:var(--text3);font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;cursor:pointer;transition:color 0.2s,border-color 0.2s;}
+.tab-btn.active{color:var(--navy);border-bottom-color:var(--gold2);}
+.panel-content{flex:1;overflow-y:auto;overflow-x:hidden;}
+.panel-content::-webkit-scrollbar{width:3px;}
+.panel-content::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+
+/* ── ADD PANEL ── */
+#add-panel{padding:16px;}
+.sel-context{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text3);letter-spacing:1px;margin-bottom:8px;text-transform:uppercase;}
+.sel-preview{font-size:12px;color:var(--text2);line-height:1.6;padding:10px 12px;background:var(--bg2);border-left:2px solid var(--gold2);margin-bottom:14px;font-style:italic;border-radius:0 3px 3px 0;}
+.type-toggle{display:flex;gap:6px;margin-bottom:14px;}
+.type-btn{flex:1;padding:9px 0;border-radius:3px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;cursor:pointer;transition:all 0.2s;border:1px solid transparent;}
+.type-btn.support{background:rgba(26,92,56,0.07);border-color:rgba(26,92,56,0.2);color:var(--support);}
+.type-btn.support.active{background:rgba(26,92,56,0.15);border-color:var(--support2);color:var(--support);font-weight:500;}
+.type-btn.challenge{background:rgba(122,31,46,0.07);border-color:rgba(122,31,46,0.2);color:var(--challenge);}
+.type-btn.challenge.active{background:rgba(122,31,46,0.15);border-color:var(--challenge2);color:var(--challenge);font-weight:500;}
+.voice-section{margin-bottom:14px;background:var(--bg2);border:1px solid var(--border);border-radius:3px;padding:12px;}
+.voice-label{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text3);letter-spacing:2px;margin-bottom:10px;text-transform:uppercase;}
+.voice-btn-row{display:flex;gap:10px;align-items:center;margin-bottom:8px;}
+#voice-btn{width:40px;height:40px;border-radius:50%;border:2px solid var(--gold2);background:rgba(138,109,46,0.08);color:var(--gold2);font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;flex-shrink:0;}
+#voice-btn:hover{background:rgba(138,109,46,0.15);}
+#voice-btn.recording{border-color:var(--challenge2);background:rgba(158,42,60,0.1);color:var(--challenge2);animation:pulse 1.2s ease-in-out infinite;}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(158,42,60,0.3);}50%{box-shadow:0 0 0 8px rgba(158,42,60,0);}}
+.voice-status{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text3);line-height:1.5;flex:1;}
+#transcript-preview{font-size:11px;color:var(--text2);font-style:italic;line-height:1.6;min-height:18px;}
+.voice-note{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text3);letter-spacing:1px;margin-top:6px;line-height:1.5;}
+.arg-label{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text3);letter-spacing:2px;margin-bottom:8px;text-transform:uppercase;}
+#arg-textarea{width:100%;background:#FFF;border:1px solid var(--border);border-radius:3px;padding:12px;color:var(--text);font-family:'Libre Baskerville',serif;font-size:12px;line-height:1.7;resize:none;outline:none;transition:border-color 0.2s;margin-bottom:6px;box-shadow:inset 0 1px 3px rgba(28,43,58,0.04);}
+#arg-textarea:focus{border-color:var(--gold2);}
+.char-count{font-family:'JetBrains Mono',monospace;font-size:9px;text-align:right;margin-bottom:12px;}
+#submit-btn{width:100%;padding:12px 0;background:var(--navy);border:none;border-radius:3px;color:#E8D8A8;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:500;letter-spacing:3px;cursor:pointer;transition:background 0.2s,opacity 0.2s;text-transform:uppercase;}
+#submit-btn:hover{background:var(--navy2);}
+#submit-btn:disabled{opacity:0.3;cursor:not-allowed;}
+.submit-error{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--challenge2);margin-top:8px;letter-spacing:1px;}
+#no-selection{padding:40px 16px;text-align:center;}
+.no-sel-glyph{font-family:'Playfair Display',serif;font-size:40px;color:rgba(28,43,58,0.1);margin-bottom:10px;}
+.no-sel-text{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text3);letter-spacing:1px;line-height:2;}
+
+/* ── GRADE + DETAIL PANEL ── */
+#grade-panel{padding:16px;}
+.grade-panel-empty{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text3);letter-spacing:1px;padding:20px 0;text-align:center;line-height:2;}
+.grade-node-text{font-size:12px;color:var(--text);line-height:1.75;margin-bottom:16px;padding:10px 12px;background:var(--bg2);border-radius:3px;}
+.grade-section-label{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text3);letter-spacing:2px;margin-bottom:10px;text-transform:uppercase;}
+
+/* Human grade buttons */
+.grade-btns{display:flex;gap:6px;margin-bottom:20px;}
+.grade-btn{flex:1;padding:10px 0;border-radius:3px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1px;cursor:pointer;border:1px solid;transition:all 0.2s;font-weight:500;}
+.grade-btn.g-strong{background:rgba(26,92,56,0.07);border-color:rgba(26,92,56,0.25);color:var(--support);}
+.grade-btn.g-strong.selected{background:rgba(26,92,56,0.2);border-color:var(--support2);color:var(--support);}
+.grade-btn.g-moderate{background:rgba(138,109,46,0.07);border-color:rgba(138,109,46,0.25);color:var(--gold);}
+.grade-btn.g-moderate.selected{background:rgba(138,109,46,0.2);border-color:var(--gold2);color:var(--gold);}
+.grade-btn.g-weak{background:rgba(122,31,46,0.07);border-color:rgba(122,31,46,0.25);color:var(--challenge);}
+.grade-btn.g-weak.selected{background:rgba(122,31,46,0.2);border-color:var(--challenge2);color:var(--challenge);}
+
+/* Flag button */
+.flag-section{margin-bottom:20px;}
+.flag-btn-full{width:100%;padding:9px 0;background:none;border:1px solid rgba(122,31,46,0.2);border-radius:3px;color:var(--text3);font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;cursor:pointer;transition:all 0.2s;text-transform:uppercase;}
+.flag-btn-full:hover{border-color:var(--challenge2);color:var(--challenge2);}
+.flag-btn-full.flagged{border-color:var(--challenge2);color:var(--challenge2);background:rgba(122,31,46,0.06);}
+
+/* AI analysis in grade panel */
+.ai-analysis-box{background:var(--bg2);border:1px solid var(--border);border-radius:3px;padding:12px;margin-bottom:12px;}
+.ai-analysis-title{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text3);letter-spacing:2px;margin-bottom:10px;}
+.ai-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px;}
+.ai-row-label{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text3);letter-spacing:1px;}
+.ai-row-val{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;}
+.qbar-wrap{flex:1;margin:0 10px;height:3px;background:rgba(28,43,58,0.1);border-radius:2px;}
+.qbar{height:100%;border-radius:2px;transition:width 0.6s ease;}
+.tags-wrap{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px;}
+.tag{font-family:'JetBrains Mono',monospace;font-size:9px;padding:2px 8px;border-radius:2px;background:rgba(35,74,140,0.08);border:1px solid rgba(35,74,140,0.2);color:var(--blue2);letter-spacing:1px;}
+.ai-note-text{font-size:11px;color:var(--text3);line-height:1.7;font-style:italic;padding-top:8px;border-top:1px solid var(--border2);}
+.ai-note-text::before{content:'◈ ';color:var(--gold2);font-style:normal;}
+
+/* Human vs AI comparison */
+.comparison-box{background:#FFF;border:1px solid var(--border);border-radius:3px;padding:10px 12px;margin-bottom:16px;}
+.comparison-title{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text3);letter-spacing:2px;margin-bottom:8px;}
+.comparison-row{display:flex;justify-content:space-between;align-items:center;}
+.comp-item{text-align:center;flex:1;}
+.comp-label{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--text3);letter-spacing:1px;display:block;margin-bottom:3px;}
+.comp-val{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;}
+.comp-divider{width:1px;height:30px;background:var(--border);}
+.comp-agree{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--support);letter-spacing:1px;margin-top:6px;text-align:center;}
+.comp-disagree{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--gold);letter-spacing:1px;margin-top:6px;text-align:center;}
+
+/* ── CLUSTER PANEL ── */
+#cluster-panel{padding:16px;}
+.cluster-card{margin-bottom:10px;background:var(--bg2);border:1px solid var(--border);border-radius:3px;padding:12px;cursor:pointer;transition:border-color 0.2s;}
+.cluster-card:hover{border-color:var(--blue2);}
+.cluster-name{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--blue2);letter-spacing:2px;margin-bottom:4px;}
+.cluster-meta{display:flex;justify-content:space-between;margin-bottom:6px;}
+.cluster-count{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text3);}
+.cluster-synthesis{font-size:11px;color:var(--text2);line-height:1.6;font-style:italic;padding-top:6px;border-top:1px solid var(--border2);}
+.no-clusters{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text3);letter-spacing:1px;padding:20px 0;text-align:center;line-height:2;}
+
+/* ── SESSION SUMMARY MODAL ── */
+#summary-modal{position:fixed;inset:0;background:rgba(20,30,42,0.8);display:none;align-items:center;justify-content:center;z-index:200;backdrop-filter:blur(6px);}
+#summary-modal.visible{display:flex;}
+.summary-card{background:var(--panel);border:1px solid var(--border);border-top:3px solid var(--gold2);border-radius:4px;padding:40px 44px;max-width:680px;width:92%;max-height:88vh;overflow-y:auto;box-shadow:0 24px 64px rgba(20,30,42,0.3);}
+.summary-card::-webkit-scrollbar{width:3px;}
+.summary-card::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+.sum-eyebrow{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:4px;color:var(--gold2);margin-bottom:8px;text-transform:uppercase;}
+.sum-title{font-family:'Playfair Display',serif;font-size:28px;color:var(--navy);margin-bottom:24px;font-weight:700;}
+.sum-section{margin-bottom:24px;}
+.sum-section-label{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text3);letter-spacing:3px;text-transform:uppercase;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border2);}
+.sum-root{font-family:'Playfair Display',serif;font-size:16px;color:var(--navy);line-height:1.7;font-style:italic;padding:12px 16px;background:rgba(138,109,46,0.06);border-left:3px solid var(--gold2);border-radius:0 3px 3px 0;}
+.sum-stats{display:flex;gap:16px;margin-bottom:20px;}
+.sum-stat{flex:1;text-align:center;padding:12px 8px;background:var(--bg2);border-radius:3px;border:1px solid var(--border);}
+.sum-stat-num{font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:700;color:var(--navy);display:block;}
+.sum-stat-label{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--text3);letter-spacing:2px;display:block;margin-top:3px;}
+.sum-cp{padding:14px 16px;margin-bottom:10px;border-radius:3px;background:#FFF9EE;border:1px solid rgba(170,139,60,0.2);border-top:2px solid var(--gold2);}
+.sum-cp-title{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--gold2);letter-spacing:2px;font-weight:700;margin-bottom:8px;}
+.sum-cp-text{font-family:'Playfair Display',serif;font-size:14px;color:var(--navy);line-height:1.75;font-style:italic;}
+.sum-cluster{padding:12px 14px;margin-bottom:8px;border-radius:3px;background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--blue2);}
+.sum-cluster-name{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--blue2);letter-spacing:2px;margin-bottom:6px;}
+.sum-cluster-text{font-size:12px;color:var(--text2);line-height:1.6;font-style:italic;}
+.sum-takeaway{padding:16px 18px;background:rgba(26,92,56,0.05);border:1px solid rgba(26,92,56,0.2);border-radius:3px;margin-bottom:20px;}
+.sum-takeaway-label{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--support);letter-spacing:2px;margin-bottom:8px;font-weight:700;}
+.sum-takeaway-text{font-size:13px;color:var(--navy);line-height:1.75;}
+.sum-actions{display:flex;gap:10px;}
+.sum-copy-btn{flex:1;padding:12px 0;background:var(--navy);border:none;border-radius:3px;color:#E8D8A8;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:2px;cursor:pointer;transition:background 0.2s;}
+.sum-copy-btn:hover{background:var(--navy2);}
+.sum-close-btn{padding:12px 20px;background:none;border:1px solid var(--border);border-radius:3px;color:var(--text3);font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:2px;cursor:pointer;transition:all 0.2s;}
+.sum-close-btn:hover{border-color:var(--gold2);color:var(--gold2);}
+.sum-copy-confirm{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--support);letter-spacing:1px;text-align:center;margin-top:8px;display:none;}
+
+/* ── SETUP MODAL ── */
+#setup-modal{position:fixed;inset:0;background:rgba(20,30,42,0.75);display:flex;align-items:center;justify-content:center;z-index:100;backdrop-filter:blur(6px);}
+.setup-card{background:var(--panel);border:1px solid var(--border);border-top:3px solid var(--gold2);border-radius:4px;padding:48px 52px;max-width:540px;width:90%;box-shadow:0 24px 64px rgba(20,30,42,0.25);}
+.setup-eyebrow{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:4px;color:var(--gold2);margin-bottom:10px;text-transform:uppercase;}
+.setup-title{font-family:'Playfair Display',serif;font-size:40px;color:var(--navy);margin-bottom:6px;font-weight:700;}
+.setup-sub{font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:32px;}
+.setup-field-label{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--gold2);letter-spacing:2px;margin-bottom:8px;text-transform:uppercase;}
+.setup-input,.setup-textarea{width:100%;background:#FFF;border:1px solid var(--border);border-radius:3px;padding:12px 14px;color:var(--text);font-family:'Libre Baskerville',serif;font-size:13px;outline:none;transition:border-color 0.2s;box-shadow:inset 0 1px 3px rgba(28,43,58,0.04);}
+.setup-input{margin-bottom:20px;}
+.setup-textarea{border-color:rgba(170,139,60,0.4);resize:none;line-height:1.7;margin-bottom:6px;}
+.setup-input:focus,.setup-textarea:focus{border-color:var(--gold2);}
+.setup-char{font-family:'JetBrains Mono',monospace;font-size:9px;text-align:right;margin-bottom:20px;color:var(--text3);}
+.setup-btn{width:100%;padding:14px 0;background:var(--navy);border:none;border-radius:3px;color:#E8D8A8;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:500;letter-spacing:3px;cursor:pointer;transition:background 0.2s,opacity 0.2s;text-transform:uppercase;}
+.setup-btn:hover{background:var(--navy2);}
+.setup-btn:disabled{opacity:0.3;cursor:not-allowed;}
+.demo-note{margin-top:20px;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text3);letter-spacing:1px;line-height:1.8;text-align:center;}
+</style>
+</head>
+<body>
+
+<!-- SETUP MODAL -->
+<div id="setup-modal">
+  <div class="setup-card">
+    <div class="setup-eyebrow">Legal Argument Intelligence</div>
+    <div class="setup-title">Crux</div>
+    <div class="setup-sub">Set the matter position. Everything builds from this.</div>
+    <div class="setup-field-label">Your Name</div>
+    <input class="setup-input" id="setup-name" placeholder="e.g. Sarah Menon, Partner" maxlength="60"/>
+    <div class="setup-field-label">Root Position — The Legal Claim Under Examination</div>
+    <textarea class="setup-textarea" id="setup-premise" rows="4"
+      placeholder="Our company should not pay the penalty for missing the March deadline because the three-day outage at our cloud provider directly caused the delay, and our contract clearly states that failures caused by third parties outside our control are not our responsibility."></textarea>
+    <div class="setup-char" id="setup-char">0 / 50 min</div>
+    <button class="setup-btn" id="setup-btn" disabled onclick="launchSession()">OPEN SESSION →</button>
+    <div class="demo-note">Voice-first · Pre-programmed AI analysis · No API key required<br>Open in Chrome or Edge for voice input</div>
+  </div>
+</div>
+
+<!-- SESSION SUMMARY MODAL -->
+<div id="summary-modal">
+  <div class="summary-card">
+    <div class="sum-eyebrow">Session Complete</div>
+    <div class="sum-title">What This Session Produced</div>
+    <div class="sum-section">
+      <div class="sum-section-label">Root Position</div>
+      <div class="sum-root" id="sum-root"></div>
+    </div>
+    <div class="sum-section">
+      <div class="sum-stats" id="sum-stats"></div>
+    </div>
+    <div class="sum-section">
+      <div class="sum-section-label">◆ Core Points — The Fundamental Disagreements</div>
+      <div id="sum-cps"></div>
+    </div>
+    <div class="sum-section">
+      <div class="sum-section-label">Argument Clusters — How the Debate Organised Itself</div>
+      <div id="sum-clusters"></div>
+    </div>
+    <div class="sum-section">
+      <div class="sum-section-label">The Takeaway</div>
+      <div class="sum-takeaway">
+        <div class="sum-takeaway-label">WHAT THE TEAM NOW KNOWS</div>
+        <div class="sum-takeaway-text" id="sum-takeaway"></div>
+      </div>
+    </div>
+    <div class="sum-actions">
+      <button class="sum-copy-btn" onclick="copySummary()">COPY SUMMARY TEXT</button>
+      <button class="sum-close-btn" onclick="closeSummary()">CLOSE</button>
+    </div>
+    <div class="sum-copy-confirm" id="sum-copy-confirm">✓ Copied to clipboard</div>
+  </div>
+</div>
+
+<!-- HEADER -->
+<div id="header">
+  <div class="brand">
+    <div class="brand-name">Crux</div>
+    <div class="brand-tag">Legal Argument Intelligence</div>
+    <div class="demo-badge">DEMO</div>
+  </div>
+  <div class="header-right">
+    <div class="stat-pill">Nodes: <span id="stat-nodes">0</span></div>
+    <div class="stat-pill">Clusters: <span id="stat-clusters">0</span></div>
+    <div class="stat-pill" id="stat-count" style="color:#AA8B3C;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:1px;"></div>
+    <div class="stat-pill" id="stat-user" style="color:#E8D8A8;"></div>
+    <button id="summary-btn" onclick="openSummary()">SESSION SUMMARY →</button>
+  </div>
+</div>
+
+<!-- CORE POINT BANNER -->
+<div id="cp-banner">
+  <div class="cp-header">
+    <div class="cp-label">◆ CORE POINT DETECTION — The fundamental disagreements this session must resolve</div>
+    <button class="cp-close" onclick="document.getElementById('cp-banner').classList.remove('visible')">✕</button>
+  </div>
+  <div class="cp-points" id="cp-points"></div>
+</div>
+
+<!-- ANALYSING BAR -->
+<div id="analysing-bar">
+  <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  <div class="analysing-text" id="analysing-text">PROCESSING</div>
+</div>
+
+<!-- MAIN -->
+<div id="main">
+  <!-- GRAPH -->
+  <div id="graph-area">
+    <svg id="graph-canvas"></svg>
+    <div id="empty-state">
+      <div class="empty-glyph">§</div>
+      <div class="empty-text">Select a node · Add your argument</div>
+    </div>
+    <div id="zoom-controls">
+      <button class="zoom-btn" onclick="zoomIn()">+</button>
+      <button class="zoom-btn" onclick="zoomOut()">−</button>
+      <button class="zoom-btn" onclick="resetView()" style="font-size:12px;">⌂</button>
+    </div>
+    <div id="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#8A6D2E"></div>Premise</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#1A5C38"></div>Support</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#7A1F2E"></div>Challenge</div>
+      <div class="legend-item" style="margin-left:6px;color:var(--text3);font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1px;">scroll · drag</div>
+    </div>
+  </div>
+
+  <!-- SIDE PANEL -->
+  <div id="side-panel">
+    <div id="panel-tabs">
+      <button class="tab-btn active" onclick="switchTab('add')">ADD</button>
+      <button class="tab-btn" onclick="switchTab('grade')">GRADE</button>
+      <button class="tab-btn" onclick="switchTab('clusters')">CLUSTERS</button>
+    </div>
+
+    <!-- ADD TAB -->
+    <div class="panel-content" id="tab-add">
+      <div id="add-panel">
+        <div id="no-selection">
+          <div class="no-sel-glyph">§</div>
+          <div class="no-sel-text">Click the premise or<br>any node to respond</div>
+        </div>
+        <div id="with-selection" style="display:none">
+          <div class="sel-context">Responding to</div>
+          <div class="sel-preview" id="sel-preview"></div>
+          <div class="type-toggle">
+            <button class="type-btn support active" id="btn-support" onclick="setType('support')">✓ SUPPORT</button>
+            <button class="type-btn challenge" id="btn-challenge" onclick="setType('challenge')">✗ CHALLENGE</button>
+          </div>
+          <div class="voice-section">
+            <div class="voice-label">Voice Input</div>
+            <div class="voice-btn-row">
+              <button id="voice-btn" onclick="toggleVoice()">🎙</button>
+              <div class="voice-status" id="voice-status">Tap to speak your argument</div>
+            </div>
+            <div id="transcript-preview"></div>
+            <div class="voice-note" id="voice-note"></div>
+          </div>
+          <div class="arg-label">Or Type Your Argument</div>
+          <textarea id="arg-textarea" rows="5" placeholder="State your argument… (50–500 characters)" oninput="onArgInput()"></textarea>
+          <div class="char-count" id="char-count" style="color:var(--text3)">0 / 500</div>
+          <button id="submit-btn" disabled onclick="submitArgument()">SUBMIT →</button>
+          <div class="submit-error" id="submit-error"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GRADE TAB -->
+    <div class="panel-content" id="tab-grade" style="display:none">
+      <div id="grade-panel">
+        <div class="grade-panel-empty">Select a node on the graph<br>to grade it</div>
+      </div>
+    </div>
+
+    <!-- CLUSTERS TAB -->
+    <div class="panel-content" id="tab-clusters" style="display:none">
+      <div id="cluster-panel">
+        <div class="no-clusters">Clusters form when<br>3+ related arguments<br>accumulate</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// PRE-PROGRAMMED PAYLOADS
+// ═══════════════════════════════════════════════════════
+const PAYLOADS = [
+  null,
+  { gist:"Outage fully documented", type:"support", cluster:"Third Party Failure", strength:"strong", quality:{evidence:92,logic:90,relevance:95}, tags:["factual","evidential"], aiNote:"Direct documentary evidence of the triggering event — the strongest foundation for the defence.", fallacy:null },
+  { gist:"Notice sent within 48 hours", type:"support", cluster:"Notice Requirements", strength:"strong", quality:{evidence:88,logic:92,relevance:90}, tags:["procedural","contractual"], aiNote:"Satisfies the notice obligation on its face — but the recipient and content will be challenged.", fallacy:null },
+  { gist:"Contract written to cover this", type:"support", cluster:"Third Party Failure", strength:"strong", quality:{evidence:85,logic:94,relevance:92}, tags:["contractual","legal"], aiNote:"Negotiating history supports a broad reading of the clause — strong contextual reinforcement.", fallacy:null },
+  { gist:"Pre-existing delay breaks chain", type:"challenge", cluster:"Causation Analysis", strength:"strong", quality:{evidence:90,logic:95,relevance:96}, tags:["factual","legal"], aiNote:"The most dangerous challenge — if causation is broken, the entire third-party defence collapses.", fallacy:null },
+  { gist:"Single provider was our choice", type:"challenge", cluster:"Causation Analysis", strength:"moderate", quality:{evidence:65,logic:85,relevance:70}, tags:["factual","policy"], aiNote:"A foreseeability argument — weaker than causation but adds a second line of attack on the defence.", fallacy:null },
+  { gist:"Outage independently caused loss", type:"support", cluster:"Causation Analysis", strength:"strong", quality:{evidence:88,logic:92,relevance:95}, tags:["legal","factual"], aiNote:"Concedes the pre-existing delay but argues independent causation survives — directly answers node 4.", fallacy:null },
+  { gist:"Their failure started the delay", type:"support", cluster:"Causation Analysis", strength:"strong", quality:{evidence:86,logic:90,relevance:93}, tags:["factual","contractual"], aiNote:"Reverses the causation argument — if the client caused the initial delay, their challenge is undermined at its root.", fallacy:null },
+  { gist:"Notice sent to wrong person", type:"challenge", cluster:"Notice Requirements", strength:"strong", quality:{evidence:91,logic:96,relevance:94}, tags:["procedural","contractual"], aiNote:"A technical but potentially fatal defect — contracts with express notice requirements are strictly enforced.", fallacy:null },
+  { gist:"Notice lacked required detail", type:"challenge", cluster:"Notice Requirements", strength:"moderate", quality:{evidence:70,logic:88,relevance:90}, tags:["procedural","contractual"], aiNote:"Compounds the recipient issue — even if the recipient is accepted, the missing duration estimate is a second independent defect.", fallacy:null },
+  { gist:"Their silence waived the delay point", type:"support", cluster:"Third Party Failure", strength:"strong", quality:{evidence:84,logic:88,relevance:89}, tags:["legal","contractual"], aiNote:"Introduces waiver and estoppel — if accepted, this neutralises the pre-existing delay challenge entirely.", fallacy:null },
+];
+
+const CLUSTER_SYNTHESES = {
+  "Third Party Failure": "The contract's third-party clause applies directly to the outage. Documentary evidence, negotiating history, and the client's own conduct during performance all support a broad reading that covers exactly this failure.",
+  "Causation Analysis": "Whether the pre-existing 11-day delay breaks the causal chain is the central factual dispute. The answer turns on whether the outage independently caused the loss — and whether the initial delay was caused by the client's own failure to deliver test data.",
+  "Notice Requirements": "The notice defence faces two independent technical challenges — wrong recipient and missing duration estimate — either of which could be fatal to the third-party defence regardless of whether the outage itself qualifies.",
+};
+
+const CORE_POINTS = [
+  { title:"THE CAUSATION QUESTION", text:"Whether the 11-day delay that existed before the outage breaks the connection between the outage and the missed deadline — and whether the client's own failure to provide test data means that delay cannot be held against us." },
+  { title:"THE NOTICE QUESTION", text:"Whether the notice sent on 16 March satisfies the contract's formal requirements — given it went to the project manager rather than the named legal contact, and did not include an expected recovery date." },
+];
+
+// ── State ────────────────────────────────────────────────────────
+let nodes=[], edges=[], clusters={};
+let selectedId=null, argType='support', userName='';
+let humanGrades={}, flags={}, votes={};
+let submissionCount=0;
+let zoom=1, panX=0, panY=0;
+let dragging=false, dragStartX, dragStartY, panStartX, panStartY;
+let voiceActive=false, recognition=null, currentTranscript='';
+let activeTab='add';
+let sessionComplete=false;
+
+const W=()=>document.getElementById('graph-area').clientWidth;
+const H=()=>document.getElementById('graph-area').clientHeight;
+
+// ── Setup ────────────────────────────────────────────────────────
+document.getElementById('setup-name').addEventListener('input',checkSetup);
+document.getElementById('setup-premise').addEventListener('input',function(){
+  const len=this.value.trim().length;
+  document.getElementById('setup-char').textContent=`${len} / 50 min`;
+  document.getElementById('setup-char').style.color=len>=50?'var(--support)':'var(--text3)';
+  checkSetup();
+});
+function checkSetup(){
+  const n=document.getElementById('setup-name').value.trim();
+  const p=document.getElementById('setup-premise').value.trim();
+  document.getElementById('setup-btn').disabled=!n||p.length<50;
+}
+function launchSession(){
+  userName=document.getElementById('setup-name').value.trim();
+  const premiseText=document.getElementById('setup-premise').value.trim();
+  document.getElementById('setup-modal').style.display='none';
+  document.getElementById('stat-user').textContent='👤 '+userName;
+  const id=uid();
+  nodes.push({ id, text:premiseText, type:'premise', author:userName, ts:Date.now(), parentId:null,
+    gist:'Third-party outage excuses our delay', tags:[], strength:'strong', fallacy:null,
+    cluster:'Premise', quality:{evidence:100,logic:100,relevance:100},
+    aiNote:'Root position — all arguments build from this claim.', votes:0, flags:[] });
+  selectedId=id;
+  updateStats(); renderGraph(); showNodeInPanel(id);
+  document.getElementById('empty-state').style.display='none';
+}
+
+// ── Voice ────────────────────────────────────────────────────────
+function toggleVoice(){ voiceActive?stopAndProcess():startVoice(); }
+
+function startVoice(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if (!SR){
+    document.getElementById('voice-note').textContent='Voice requires Chrome or Edge served over localhost or https.';
+    return;
+  }
+  // Always create a fresh recognition object
+  if (recognition){ try{ recognition.abort(); }catch(_){} recognition=null; }
+  recognition = new SR();
+  recognition.continuous = true;   // continuous keeps mic open — no rapid restart loop
+  recognition.interimResults = true;
+  recognition.lang = 'en-US';
+
+  recognition.onstart = () => {
+    // Mic is definitely open now — update UI here, not before
+    document.getElementById('voice-btn').classList.add('recording');
+    document.getElementById('voice-btn').textContent='⏹';
+    document.getElementById('voice-status').textContent='Recording… tap to stop';
+    document.getElementById('voice-note').textContent='';
+  };
+
+  recognition.onresult = (e) => {
+    let interim='', final='';
+    for (let i=e.resultIndex; i<e.results.length; i++){
+      if (e.results[i].isFinal) final += e.results[i][0].transcript + ' ';
+      else interim += e.results[i][0].transcript;
+    }
+    if (final) currentTranscript += final;
+    const display = (currentTranscript + interim).trim();
+    document.getElementById('transcript-preview').textContent = display;
+  };
+
+  recognition.onerror = (e) => {
+    if (e.error === 'no-speech') return; // ignore silence — continuous mode handles it
+    if (e.error === 'aborted') return;   // ignore abort from our own stopVoice()
+    // Real error — show it and stop
+    document.getElementById('voice-status').textContent = 'Mic error: ' + e.error + '. Tap to retry.';
+    stopVoice();
+  };
+
+  recognition.onend = () => {
+    // In continuous mode this fires when Chrome times out (~60s)
+    // Restart automatically if still in recording mode
+    if (voiceActive){
+      try{ recognition.start(); }
+      catch(e){
+        // If restart fails, show message and stop cleanly
+        document.getElementById('voice-status').textContent = 'Mic restarted — tap to record again';
+        stopVoice();
+      }
+    }
+  };
+
+  // Reset state
+  currentTranscript = '';
+  document.getElementById('transcript-preview').textContent = '';
+  document.getElementById('arg-textarea').value = '';
+  onArgInput();
+  voiceActive = true;
+
+  try{
+    recognition.start();
+  } catch(e){
+    voiceActive = false;
+    document.getElementById('voice-note').textContent = 'Could not start mic: ' + e.message;
+    return;
+  }
+}
+
+function stopVoice(){
+  voiceActive = false;
+  if (recognition){
+    try{ recognition.stop(); } catch(_){}
+    // Don't null recognition yet — let onend fire naturally
+  }
+  document.getElementById('voice-btn').classList.remove('recording');
+  document.getElementById('voice-btn').textContent='🎙';
+  document.getElementById('voice-status').textContent='Tap to speak your argument';
+}
+
+function stopAndProcess(){
+  stopVoice();
+  const raw = currentTranscript.trim();
+  if (!raw){
+    document.getElementById('voice-note').textContent='Nothing captured — tap to try again';
+    return;
+  }
+  // Light cleanup — remove common filler from the start only
+  const cleaned = raw
+    .replace(/^(so+,?\s+|um+,?\s+|uh+,?\s+|err+,?\s+|like,?\s+|basically,?\s+|i think,?\s+|i believe,?\s+)+/gi,'')
+    .trim();
+  document.getElementById('arg-textarea').value = cleaned.slice(0,500);
+  document.getElementById('voice-status').textContent='Review the transcript and tap Submit';
+  document.getElementById('voice-note').textContent='Edit if needed, then tap SUBMIT.';
+  onArgInput();
+}
+
+// ── Submit ────────────────────────────────────────────────────────
+function onArgInput(){
+  const text=document.getElementById('arg-textarea').value;
+  const len=text.length;
+  const cc=document.getElementById('char-count');
+  cc.textContent=`${len} / 500`;
+  cc.style.color=len<50?'var(--challenge2)':len>500?'var(--challenge2)':'var(--support)';
+  document.getElementById('submit-btn').disabled=len<50||len>500;
+  document.getElementById('submit-error').textContent='';
+}
+function setType(t){
+  argType=t;
+  document.getElementById('btn-support').classList.toggle('active',t==='support');
+  document.getElementById('btn-challenge').classList.toggle('active',t==='challenge');
+}
+function submitArgument(){
+  const text=document.getElementById('arg-textarea').value.trim();
+  if (text.length<50){ document.getElementById('submit-error').textContent='Minimum 50 characters.'; return; }
+  if (text.length>500){ document.getElementById('submit-error').textContent='Maximum 500 characters.'; return; }
+  if (!selectedId) return;
+  document.getElementById('submit-error').textContent='';
+  submissionCount++;
+  const payload=PAYLOADS[submissionCount]||{ gist:argType==='support'?'Supporting argument':'Challenging argument', type:argType, cluster:'General', strength:'moderate', quality:{evidence:70,logic:75,relevance:75}, tags:['legal'], aiNote:'', fallacy:null };
+  const id=uid();
+  nodes.push({ id, text, type:payload.type, author:userName, ts:Date.now(), parentId:selectedId,
+    gist:payload.gist, tags:payload.tags||[], strength:payload.strength,
+    fallacy:payload.fallacy||null, cluster:payload.cluster,
+    quality:payload.quality, aiNote:payload.aiNote||'', votes:0, flags:[] });
+  edges.push({ source:selectedId, target:id });
+  const ck=payload.cluster;
+  if (!clusters[ck]) clusters[ck]={ nodeIds:[], synthesis:'' };
+  clusters[ck].nodeIds.push(id);
+  if (clusters[ck].nodeIds.length===3&&CLUSTER_SYNTHESES[ck]){
+    clusters[ck].synthesis=CLUSTER_SYNTHESES[ck];
+    flashTab(2);
+  }
+  document.getElementById('arg-textarea').value='';
+  document.getElementById('transcript-preview').textContent='';
+  currentTranscript=''; onArgInput();
+  selectedId=id;
+  setAnalysing(true,'PROCESSING ARGUMENT');
+  setTimeout(()=>{
+    updateStats(); renderGraph(); showNodeInPanel(id); renderClusters();
+    setAnalysing(false);
+    if (submissionCount===10){
+      setTimeout(()=>{
+        showCorePoints();
+        sessionComplete=true;
+        document.getElementById('summary-btn').classList.add('visible');
+      },800);
+    }
+  },500);
+}
+
+function flashTab(idx){
+  const tabs=document.querySelectorAll('.tab-btn');
+  if (tabs[idx]&&activeTab!=='clusters'){ tabs[idx].style.color='var(--gold2)'; setTimeout(()=>{ if(activeTab!=='clusters') tabs[idx].style.color=''; },3000); }
+}
+
+// ── Core Points ──────────────────────────────────────────────────
+function showCorePoints(){
+  const banner=document.getElementById('cp-banner');
+  document.getElementById('cp-points').innerHTML=CORE_POINTS.map(cp=>`
+    <div class="cp-point">
+      <div class="cp-point-title">${cp.title}</div>
+      <div class="cp-point-text">${cp.text}</div>
+    </div>`).join('');
+  banner.classList.add('visible');
+}
+
+// ── Graph ────────────────────────────────────────────────────────
+function computePositions(){
+  const positions={};
+  if (!nodes.length) return positions;
+  const cw=W(),ch=H(),cx=cw/2,cy=ch/2;
+  const childMap={};
+  nodes.forEach(n=>{childMap[n.id]=[];});
+  nodes.forEach(n=>{if(n.parentId&&childMap[n.parentId])childMap[n.parentId].push(n.id);});
+  const root=nodes.find(n=>!n.parentId);
+  if (!root) return positions;
+  positions[root.id]={x:cx,y:cy};
+  function place(nodeId,depth,baseAngle){
+    const children=childMap[nodeId]||[];
+    if (!children.length) return;
+    const r=110+depth*120;
+    const supports=children.filter(id=>nodes.find(x=>x.id===id)?.type==='support');
+    const challenges=children.filter(id=>nodes.find(x=>x.id===id)?.type==='challenge');
+    const all=[...supports,...challenges];
+    const spread=Math.min(Math.PI*0.75,(Math.PI*1.3)/Math.max(all.length,1));
+    all.forEach((childId,i)=>{
+      const n=nodes.find(x=>x.id===childId);
+      const skew=n?.type==='support'?-Math.PI*0.5:Math.PI*0.5;
+      const offset=(i-(all.length-1)/2)*spread;
+      const angle=baseAngle+skew+offset;
+      const jitter=(Math.random()-0.5)*14;
+      positions[childId]={x:Math.max(75,Math.min(cw-75,cx+Math.cos(angle)*r+jitter)),y:Math.max(75,Math.min(ch-75,cy+Math.sin(angle)*r+jitter))};
+      place(childId,depth+1,angle);
+    });
+  }
+  place(root.id,1,0);
+  const ids=Object.keys(positions);
+  for(let pass=0;pass<35;pass++){for(let i=0;i<ids.length;i++){for(let j=i+1;j<ids.length;j++){const a=positions[ids[i]],b=positions[ids[j]];const dx=a.x-b.x,dy=a.y-b.y;const dist=Math.sqrt(dx*dx+dy*dy)||1;if(dist<80){const push=(80-dist)/2;a.x+=(dx/dist)*push;a.y+=(dy/dist)*push;b.x-=(dx/dist)*push;b.y-=(dy/dist)*push;}}}}
+  Object.values(positions).forEach(p=>{p.x=Math.max(75,Math.min(W()-75,p.x));p.y=Math.max(75,Math.min(H()-75,p.y));});
+  return positions;
+}
+
+function renderGraph(){
+  const svg=document.getElementById('graph-canvas');
+  const positions=computePositions();
+  const cw=W(),ch=H();
+  const defs=`<defs>
+    <filter id="fg" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <filter id="fs" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <filter id="fc" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <filter id="fsel" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="8" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <filter id="drop" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-color="rgba(28,43,58,0.14)"/></filter>
+  </defs>`;
+  let halos='';
+  Object.entries(clusters).forEach(([name,cluster])=>{
+    if(cluster.nodeIds.length<2) return;
+    const pts=cluster.nodeIds.map(id=>positions[id]).filter(Boolean);
+    if(pts.length<2) return;
+    const cx2=pts.reduce((s,p)=>s+p.x,0)/pts.length;
+    const cy2=pts.reduce((s,p)=>s+p.y,0)/pts.length;
+    const maxDist=Math.max(...pts.map(p=>Math.sqrt((p.x-cx2)**2+(p.y-cy2)**2)));
+    const r=Math.max(50,maxDist+36);
+    halos+=`<ellipse cx="${cx2}" cy="${cy2}" rx="${r}" ry="${r*0.72}" fill="rgba(46,95,170,0.04)" stroke="rgba(46,95,170,0.15)" stroke-width="1" stroke-dasharray="6 5"/>
+    <text x="${cx2}" y="${cy2-r*0.72-8}" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="8" fill="rgba(46,95,170,0.5)" letter-spacing="2">${name.toUpperCase()}</text>`;
+  });
+  const axis=`<line x1="${cw/2}" y1="18" x2="${cw/2}" y2="${ch-18}" stroke="rgba(28,43,58,0.05)" stroke-width="1" stroke-dasharray="4 10"/>
+    <text x="${cw/2-16}" y="16" font-family="JetBrains Mono,monospace" font-size="8" fill="rgba(26,92,56,0.3)" letter-spacing="1">SUPPORT ←</text>
+    <text x="${cw/2+6}" y="16" font-family="JetBrains Mono,monospace" font-size="8" fill="rgba(122,31,46,0.3)" letter-spacing="1">→ CHALLENGE</text>`;
+  let edgesSVG='';
+  edges.forEach(e=>{
+    const sp=positions[e.source],tp=positions[e.target];
+    if(!sp||!tp) return;
+    const tn=nodes.find(n=>n.id===e.target);
+    const col=tn?.type==='support'?'rgba(26,92,56,0.25)':'rgba(122,31,46,0.25)';
+    const mx=(sp.x+tp.x)/2,my=(sp.y+tp.y)/2-22;
+    edgesSVG+=`<path d="M${sp.x},${sp.y} Q${mx},${my} ${tp.x},${tp.y}" stroke="${col}" stroke-width="1.5" fill="none" opacity="${tn?.quarantined?0.15:1}"/>`;
+  });
+  let nodesSVG='';
+  nodes.forEach(n=>{
+    const pos=positions[n.id];
+    if(!pos) return;
+    const isSel=n.id===selectedId;
+    const isQ=n.quarantined;
+    const op=isQ?0.2:1;
+    let fill,stroke,textCol,filterID,r;
+    if(n.type==='premise'){fill='#8A6D2E';stroke='#C4A84A';textCol='#FFF8EC';filterID='fg';r=28;}
+    else if(n.type==='support'){fill='#1A5C38';stroke='#2A8A5A';textCol='#E8F8EE';filterID='fs';r=17+Math.min(Math.max(n.votes||0,0)*1.5,8);}
+    else{fill='#7A1F2E';stroke='#B03040';textCol='#FFE8EA';filterID='fc';r=17+Math.min(Math.max(n.votes||0,0)*1.5,8);}
+    // Human grade ring
+    const hg=humanGrades[n.id];
+    const hgColor=hg==='strong'?'#237A4C':hg==='moderate'?'#AA8B3C':hg==='weak'?'#9E2A3C':null;
+    const gistText=n.gist||'';
+    const gistW=Math.max(64,gistText.length*6.0+18);
+    const gistX=pos.x-gistW/2;
+    const gistY=pos.y+r+7;
+    const pillFill=n.type==='premise'?'#FDF7E8':n.type==='support'?'#EAF4EE':'#F9ECEE';
+    const pillStroke=n.type==='premise'?'rgba(138,109,46,0.35)':n.type==='support'?'rgba(26,92,56,0.3)':'rgba(122,31,46,0.3)';
+    const pillTextCol=n.type==='premise'?'#8A6D2E':n.type==='support'?'#1A5C38':'#7A1F2E';
+    let extras='';
+    if(isSel){extras+=`<circle r="${r+14}" fill="${fill}" opacity="0.11"/><circle r="${r+8}" fill="none" stroke="${stroke}" stroke-width="1.5" stroke-dasharray="4 4" opacity="0.45"><animateTransform attributeName="transform" type="rotate" from="0 0 0" to="360 0 0" dur="10s" repeatCount="indefinite"/></circle>`;}
+    if(hgColor){extras+=`<circle r="${r+3}" fill="none" stroke="${hgColor}" stroke-width="2.5" opacity="0.7"/>`;}
+    if(n.flagged){extras+=`<text x="${r-1}" y="${-r+2}" font-size="10" fill="#A83040">⚑</text>`;}
+    const lbl=n.type==='premise'?'P':n.type==='support'?'S':'C';
+    nodesSVG+=`
+    <g transform="translate(${pos.x},${pos.y})" style="cursor:pointer;opacity:${op}" data-id="${n.id}" class="node-g">
+      ${extras}
+      <circle r="${r}" fill="${fill}" filter="url(#${isSel?'fsel':filterID})" stroke="${isSel?stroke:'rgba(255,255,255,0.45)'}" stroke-width="${isSel?2:1}"/>
+      <text text-anchor="middle" dy="4" font-family="JetBrains Mono,monospace" font-size="${n.type==='premise'?11:9}" fill="${textCol}" font-weight="700" style="pointer-events:none;user-select:none">${lbl}</text>
+    </g>
+    <g style="pointer-events:none;opacity:${op}">
+      <rect x="${gistX}" y="${gistY}" width="${gistW}" height="16" rx="8" fill="${pillFill}" stroke="${pillStroke}" stroke-width="1" filter="url(#drop)"/>
+      <text x="${pos.x}" y="${gistY+11}" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="8.5" fill="${pillTextCol}" font-weight="500" letter-spacing="0.3">${gistText}</text>
+    </g>`;
+  });
+  svg.innerHTML=`${defs}<g id="graph-root" transform="translate(${panX},${panY}) scale(${zoom})">${axis}${halos}${edgesSVG}${nodesSVG}</g>`;
+  svg.querySelectorAll('.node-g').forEach(g=>{
+    g.addEventListener('click',e=>{e.stopPropagation();const id=g.getAttribute('data-id');selectedId=id;showNodeInPanel(id);if(activeTab==='grade')renderGradePanel(id);renderGraph();});
+  });
+}
+
+// ── Panel ────────────────────────────────────────────────────────
+function switchTab(tab){
+  activeTab=tab;
+  ['add','grade','clusters'].forEach((t,i)=>{
+    document.getElementById('tab-'+t).style.display=t===tab?'block':'none';
+    document.querySelectorAll('.tab-btn')[i].classList.toggle('active',t===tab);
+    if(t===tab) document.querySelectorAll('.tab-btn')[i].style.color='';
+  });
+  if(tab==='grade'&&selectedId) renderGradePanel(selectedId);
+}
+
+function showNodeInPanel(id){
+  const node=nodes.find(n=>n.id===id);
+  if(!node) return;
+  document.getElementById('sel-preview').textContent=node.text.slice(0,100)+(node.text.length>100?'…':'');
+  document.getElementById('no-selection').style.display='none';
+  document.getElementById('with-selection').style.display='block';
+  if(activeTab==='grade') renderGradePanel(id);
+}
+
+// ── Grade Panel ──────────────────────────────────────────────────
+function renderGradePanel(id){
+  const node=nodes.find(n=>n.id===id);
+  if(!node){ document.getElementById('grade-panel').innerHTML='<div class="grade-panel-empty">Select a node on the graph<br>to grade it</div>'; return; }
+  const col=node.type==='premise'?'#8A6D2E':node.type==='support'?'#1A5C38':'#7A1F2E';
+  const bg=node.type==='premise'?'rgba(138,109,46,0.08)':node.type==='support'?'rgba(26,92,56,0.08)':'rgba(122,31,46,0.08)';
+  const border=node.type==='premise'?'rgba(138,109,46,0.25)':node.type==='support'?'rgba(26,92,56,0.25)':'rgba(122,31,46,0.25)';
+  const hg=humanGrades[id]||null;
+  const isFlagged=!!flags[id];
+  const qc=v=>v>=75?'#237A4C':v>=40?'#8A6D2E':'#9E2A3C';
+  const aiStrCol=node.strength==='strong'?'#237A4C':node.strength==='moderate'?'#8A6D2E':'#9E2A3C';
+  // Human vs AI comparison
+  let compHTML='';
+  if(hg){
+    const hgCol=hg==='strong'?'#237A4C':hg==='moderate'?'#8A6D2E':'#9E2A3C';
+    const agree=hg===node.strength;
+    compHTML=`<div class="comparison-box">
+      <div class="comparison-title">HUMAN VS AI ASSESSMENT</div>
+      <div class="comparison-row">
+        <div class="comp-item"><span class="comp-label">YOUR GRADE</span><span class="comp-val" style="color:${hgCol}">${hg.toUpperCase()}</span></div>
+        <div class="comp-divider"></div>
+        <div class="comp-item"><span class="comp-label">AI ASSESSMENT</span><span class="comp-val" style="color:${aiStrCol}">${node.strength.toUpperCase()}</span></div>
+      </div>
+      <div class="${agree?'comp-agree':'comp-disagree'}">${agree?'✓ In agreement':'△ Different assessment — worth discussing'}</div>
+    </div>`;
+  }
+  document.getElementById('grade-panel').innerHTML=`
+    <div style="display:inline-block;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;padding:3px 10px;border-radius:2px;background:${bg};border:1px solid ${border};color:${col};margin-bottom:10px;">${node.type.toUpperCase()}</div>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--gold2);letter-spacing:1px;margin-bottom:10px;font-weight:500;">◈ ${node.gist}</div>
+    <div class="grade-node-text">${node.text}</div>
+    <div class="grade-section-label">Your Grade — How Strong Is This Argument?</div>
+    <div class="grade-btns">
+      <button class="grade-btn g-strong ${hg==='strong'?'selected':''}" onclick="setGrade('${id}','strong')">STRONG</button>
+      <button class="grade-btn g-moderate ${hg==='moderate'?'selected':''}" onclick="setGrade('${id}','moderate')">MODERATE</button>
+      <button class="grade-btn g-weak ${hg==='weak'?'selected':''}" onclick="setGrade('${id}','weak')">WEAK</button>
+    </div>
+    ${compHTML}
+    <div class="flag-section">
+      <div class="grade-section-label">Flag This Argument</div>
+      <button class="flag-btn-full ${isFlagged?'flagged':''}" onclick="flagNode('${id}')">${isFlagged?'⚑ FLAGGED — Argument Dimmed on Graph':'⚑ Flag as Irrelevant or Off-Topic'}</button>
+    </div>
+    <div class="grade-section-label">AI Analysis</div>
+    <div class="ai-analysis-box">
+      <div class="ai-row"><div class="ai-row-label">AI Strength</div><div class="ai-row-val" style="color:${aiStrCol}">${node.strength.toUpperCase()}</div></div>
+      <div class="ai-row"><div class="ai-row-label">Cluster</div><div class="ai-row-val" style="color:var(--blue2)">${node.cluster}</div></div>
+      <div style="margin-top:8px;">
+        ${[['Evidence',node.quality.evidence],['Logic',node.quality.logic],['Relevance',node.quality.relevance]].map(([label,val])=>`
+          <div class="quality-row" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text3);letter-spacing:1px;width:70px;">${label}</div>
+            <div class="qbar-wrap"><div class="qbar" style="width:${val}%;background:${qc(val)}"></div></div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:${qc(val)};font-weight:700;width:30px;text-align:right;">${val>=75?'HIGH':val>=40?'MOD':'LOW'}</div>
+          </div>`).join('')}
+      </div>
+    </div>
+    ${node.tags?.length?`<div class="tags-wrap">${node.tags.map(t=>`<span class="tag">${t}</span>`).join('')}</div>`:''}
+    ${node.aiNote?`<div class="ai-note-text">${node.aiNote}</div>`:''}`;
+}
+
+function setGrade(nodeId,grade){
+  humanGrades[nodeId]=grade;
+  renderGradePanel(nodeId);
+  renderGraph(); // show grade ring on node
+}
+
+function flagNode(nodeId){
+  flags[nodeId]=!flags[nodeId];
+  const idx=nodes.findIndex(n=>n.id===nodeId);
+  if(idx>=0) nodes[idx].flagged=flags[nodeId];
+  renderGraph();
+  if(activeTab==='grade') renderGradePanel(nodeId);
+}
+
+// ── Clusters ─────────────────────────────────────────────────────
+function renderClusters(){
+  const panel=document.getElementById('cluster-panel');
+  const entries=Object.entries(clusters).filter(([,c])=>c.nodeIds.length>=2);
+  if(!entries.length){panel.innerHTML='<div class="no-clusters">Clusters form when<br>3+ related arguments<br>accumulate</div>';return;}
+  panel.innerHTML=entries.sort((a,b)=>b[1].nodeIds.length-a[1].nodeIds.length).map(([name,cluster])=>`
+    <div class="cluster-card" onclick="selectedId='${cluster.nodeIds[0]}';showNodeInPanel('${cluster.nodeIds[0]}');renderGraph();switchTab('grade')">
+      <div class="cluster-meta">
+        <div class="cluster-name">${name}</div>
+        <div class="cluster-count">${cluster.nodeIds.length} arguments</div>
+      </div>
+      ${cluster.synthesis?`<div class="cluster-synthesis">${cluster.synthesis}</div>`:'<div class="cluster-synthesis" style="color:var(--text3);font-style:normal;font-size:10px;">Synthesis fires when 3rd argument joins</div>'}
+    </div>`).join('');
+  document.getElementById('stat-clusters').textContent=entries.length;
+}
+
+// ── Session Summary ───────────────────────────────────────────────
+function openSummary(){
+  const root=nodes.find(n=>!n.parentId);
+  document.getElementById('sum-root').textContent=root?root.text:'';
+  const supports=nodes.filter(n=>n.type==='support').length;
+  const challenges=nodes.filter(n=>n.type==='challenge').length;
+  const graded=Object.keys(humanGrades).length;
+  const flagged=Object.values(flags).filter(Boolean).length;
+  document.getElementById('sum-stats').innerHTML=`
+    <div class="sum-stat"><span class="sum-stat-num">${supports}</span><span class="sum-stat-label">SUPPORTS</span></div>
+    <div class="sum-stat"><span class="sum-stat-num">${challenges}</span><span class="sum-stat-label">CHALLENGES</span></div>
+    <div class="sum-stat"><span class="sum-stat-num">${graded}</span><span class="sum-stat-label">GRADED</span></div>
+    <div class="sum-stat"><span class="sum-stat-num">${flagged}</span><span class="sum-stat-label">FLAGGED</span></div>`;
+  document.getElementById('sum-cps').innerHTML=CORE_POINTS.map(cp=>`
+    <div class="sum-cp">
+      <div class="sum-cp-title">${cp.title}</div>
+      <div class="sum-cp-text">${cp.text}</div>
+    </div>`).join('');
+  const clusterEntries=Object.entries(clusters).filter(([,c])=>c.nodeIds.length>=2&&c.synthesis);
+  document.getElementById('sum-clusters').innerHTML=clusterEntries.length?clusterEntries.map(([name,c])=>`
+    <div class="sum-cluster">
+      <div class="sum-cluster-name">${name.toUpperCase()} · ${c.nodeIds.length} ARGUMENTS</div>
+      <div class="sum-cluster-text">${c.synthesis}</div>
+    </div>`).join(''):'<div style="font-family:\'JetBrains Mono\',monospace;font-size:10px;color:var(--text3);">No cluster syntheses yet</div>';
+  document.getElementById('sum-takeaway').innerHTML=`This session mapped <strong>${nodes.length-1} arguments</strong> across <strong>${clusterEntries.length} clusters</strong>. The debate organised itself around three themes: the scope of the third-party clause, the causation question arising from the pre-existing delay, and the technical sufficiency of the notice. The two core points that remain unresolved — and must be settled before a final position can be taken — are the causal chain question and the notice validity question. These are not peripheral disagreements. They are the load-bearing issues the team needs to resolve next.`;
+  document.getElementById('summary-modal').classList.add('visible');
+}
+function closeSummary(){ document.getElementById('summary-modal').classList.remove('visible'); }
+function copySummary(){
+  const root=nodes.find(n=>!n.parentId);
+  const text=`CRUX SESSION SUMMARY\n\nRoot Position:\n${root?.text||''}\n\nCore Points:\n${CORE_POINTS.map((cp,i)=>`${i+1}. ${cp.title}\n${cp.text}`).join('\n\n')}\n\nCluster Syntheses:\n${Object.entries(clusters).filter(([,c])=>c.synthesis).map(([name,c])=>`${name}:\n${c.synthesis}`).join('\n\n')}\n\nSession Stats: ${nodes.filter(n=>n.type==='support').length} supports · ${nodes.filter(n=>n.type==='challenge').length} challenges · ${Object.keys(humanGrades).length} graded · ${Object.values(flags).filter(Boolean).length} flagged`;
+  navigator.clipboard.writeText(text).then(()=>{
+    const conf=document.getElementById('sum-copy-confirm');
+    conf.style.display='block';
+    setTimeout(()=>{conf.style.display='none';},2500);
+  });
+}
+
+// ── Helpers ──────────────────────────────────────────────────────
+function setAnalysing(state,msg='PROCESSING'){
+  document.getElementById('analysing-bar').classList.toggle('visible',state);
+  if(msg) document.getElementById('analysing-text').textContent=msg;
+}
+function updateStats(){
+  document.getElementById('stat-nodes').textContent=nodes.length;
+  document.getElementById('stat-clusters').textContent=Object.values(clusters).filter(c=>c.nodeIds.length>=2).length;
+  const rem=10-submissionCount;
+  document.getElementById('stat-count').textContent=rem>0?`${rem} to Core Point`:'Core Point ◆';
+}
+function zoomIn(){zoom=Math.min(3,zoom*1.2);renderGraph();}
+function zoomOut(){zoom=Math.max(0.25,zoom*0.8);renderGraph();}
+function resetView(){zoom=1;panX=0;panY=0;renderGraph();}
+function uid(){return 'n-'+Date.now()+'-'+Math.random().toString(36).slice(2,8);}
+
+const svg=document.getElementById('graph-canvas');
+svg.addEventListener('mousedown',e=>{if(e.target.closest('.node-g'))return;dragging=true;dragStartX=e.clientX;dragStartY=e.clientY;panStartX=panX;panStartY=panY;});
+window.addEventListener('mousemove',e=>{if(!dragging)return;panX=panStartX+(e.clientX-dragStartX);panY=panStartY+(e.clientY-dragStartY);renderGraph();});
+window.addEventListener('mouseup',()=>{dragging=false;});
+svg.addEventListener('wheel',e=>{e.preventDefault();zoom=Math.max(0.25,Math.min(3,zoom*(e.deltaY<0?1.1:0.9)));renderGraph();},{passive:false});
+window.addEventListener('resize',()=>{if(nodes.length)renderGraph();});
+window.addEventListener('load',()=>{
+  if(!window.SpeechRecognition&&!window.webkitSpeechRecognition){
+    document.getElementById('voice-btn').disabled=true;
+    document.getElementById('voice-btn').style.opacity='0.3';
+    document.getElementById('voice-status').textContent='Voice requires Chrome or Edge on localhost or https';
+  }
+});
+</script>
+</body>
+</html>
